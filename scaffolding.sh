@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_DIR="serverforge"
+PROJECT_DIR="dockerwarrior"
 
 echo "🚀 Iniciando el scaffolding para $PROJECT_DIR..."
 
@@ -12,8 +12,8 @@ mkdir -p "$PROJECT_DIR"/{.github/workflows,lib/{core,docker,ui},apps/{core,proxy
 cd "$PROJECT_DIR"
 
 # 3. Crear archivos principales y scripts CLI
-touch install.sh serverforge.sh
-chmod +x install.sh serverforge.sh
+touch install.sh dockerwarrior.sh
+chmod +x install.sh dockerwarrior.sh
 
 # 4. Crear archivos de la librería (lib/)
 touch lib/core/{system.sh,logger.sh,utils.sh}
