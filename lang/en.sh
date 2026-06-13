@@ -1,0 +1,24 @@
+# ==============================================================================
+# UI Core - English
+# ==============================================================================
+MSG_WELCOME_TITLE="Welcome to DockerWarrior"
+MSG_WELCOME_TEXT="This wizard will audit your system, configure the Docker engine, and deploy your selected applications in a secure environment.\n\nDo you wish to proceed?"
+MSG_MENU_TITLE="Application Catalog"
+MSG_MENU_TEXT="Use the SPACEBAR to select/deselect. Press ENTER to confirm."
+MSG_BTN_OK="Accept"
+MSG_BTN_CANCEL="Cancel"
+
+# ==============================================================================
+# Application Descriptions
+# ==============================================================================
+APP_NGINX_PROXY_MANAGER_DESC="Reverse Proxy and SSL Certificate Manager"
+APP_WG_EASY_DESC="WireGuard VPN server with Web UI"
+APP_NEXTCLOUD_DESC="Private cloud and file synchronization platform"
+APP_JELLYFIN_DESC="Free Software Media System"
+APP_IMMICH_DESC="High performance self-hosted photo and video backup"
+APP_ADGUARD_HOME_DESC="Network-wide ads and trackers blocking DNS"
+APP_ODOO_DESC="Open Source ERP and CRM software"
+APP_VAULTWARDEN_DESC="Self-hosted password manager"
+APP_LIMESURVEY_DESC="Professional survey platform"
+APP_FAIL2BAN_DESC="Intrusion prevention software framework"
+APP_MAILSERVER_DESC="Fullstack email server"
