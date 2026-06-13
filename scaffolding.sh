@@ -48,6 +48,6 @@ echo "node_modules/" >> .gitignore
 echo "*.log" >> .gitignore
 echo ".env" >> .gitignore
 
-echo "✅ Esqueleto de ServerForge creado exitosamente."
+echo "✅ Esqueleto de DockerWarrior creado exitosamente."
 echo "📁 Directorio actual: $(pwd)"
 ls -la
