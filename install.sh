@@ -53,6 +53,44 @@ main() {
     local selected_apps
     selected_apps=$(ui_select_apps)
     
+    local selected_apps_str
+    selected_apps_str=$(ui_select_apps)
+    
+    # Convertir la salida de whiptail (espacios) en un array
+    read -r -a app_array <<< "${selected_apps_str}"
+    
+    if [[ ${#app_array[@]} -eq 0 ]]; then
+        log_warn "No se seleccionó ninguna aplicación para desplegar."
+    else
+        log_info "Iniciando despliegue de ${#app_array[@]} stack(s)..."
+        
+        # Bucle de despliegue (Fase 6)
+        for app_id in "${app_array[@]}"; do
+            if ! core_deploy_app "${app_id}"; then
+                log_error "Falló el despliegue de ${app_id}."
+                log_error "Abortando instalación por política fail-fast."
+                exit 1
+            fi
+            echo "" # Espaciado estético para la consola
+        done
+        
+        # Resumen Final (Pre-Fase 7)
+        echo "======================================================================"
+        log_success "DockerWarrior ha finalizado correctamente."
+        echo ""
+        echo "Stacks preparados:"
+        for app_id in "${app_array[@]}"; do
+            echo -e " \e[32m✓\e[0m ${app_id}"
+        done
+        echo ""
+        echo "Ubicación:"
+        echo " /opt/stacks/"
+        echo ""
+        echo "Siguiente paso:"
+        echo " Acceda a Dockge y despliegue los stacks preparados."
+        echo "======================================================================"
+    fi
+
     clear
     log_info "Iniciando despliegue de la infraestructura..."
     
