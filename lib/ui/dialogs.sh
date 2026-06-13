@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# DockerWarrior - Abstracción de Interfaz (Whiptail Wrapper)
-# ==============================================================================
 
 ui_message() {
     local title="${1}"
@@ -26,6 +23,5 @@ ui_checklist() {
     shift 2
     local options=("$@")
     
-    # Intercambio de descriptores para atrapar la salida limpia en una variable
     whiptail --title "${title}" --checklist "${text}" 22 80 12 "${options[@]}" 3>&1 1>&2 2>&3
 }
