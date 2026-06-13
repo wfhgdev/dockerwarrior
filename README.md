@@ -223,8 +223,12 @@ This project will be released under the MIT License.
 
 Option 1: Download and run. This command downloads the file to your current directory and then runs it. It's the cleanest option if you want to keep the script for future local modifications.
 
-```wget https://raw.githubusercontent.com/wfhgdev/dockerwarrior/main/scaffolding.sh -O scaffolding.sh && bash scaffolding.sh```
+```Shell
+wget https://raw.githubusercontent.com/wfhgdev/dockerwarrior/main/scaffolding.sh -O scaffolding.sh && bash scaffolding.sh
+```
 
 Option 2: Direct in-memory execution. If you don't want to store the scaffolding.sh executable file on your machine and just want it to create the folder structure immediately, you can pipe it directly to bash using curl:
 
-```curl -sSL https://raw.githubusercontent.com/wfhgdev/dockerwarrior/main/scaffolding.sh | bash```
+```Shell
+curl -sSL https://raw.githubusercontent.com/wfhgdev/dockerwarrior/main/scaffolding.sh | bash
+```
