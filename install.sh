@@ -30,6 +30,11 @@ main() {
     check_root
     init_log_file
     
+    log_info "Iniciando secuencia de verificación del entorno..."
+    
+    # Añadimos la validación interactiva aquí:
+    validate_interactive_terminal
+
     # Suite de auditoría (Fase 3)
     validate_os
     validate_architecture
