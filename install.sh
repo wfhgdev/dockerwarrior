@@ -80,18 +80,24 @@ main() {
         log_success "Docker Engine detectado en el sistema host."
         report_add_core_service "Docker Engine" "✓ (${TXT_REPORT_STATUS_RUN:-En ejecución})"
     else
-        log_warn "Docker Engine no detectado. Procediendo con el aprovisionamiento automatizado..."
-        # Aquí se ejecutaría la instalación desatendida del motor (omitido en la traza lógica)
-        report_add_core_service "Docker Engine" "✓ (Instalado)"
-    fi
+        log_warn "Docker Engine no detectado. Iniciando aprovisionamiento automático..."
 
-    # Verificación en caliente de Docker Compose
+    if install_docker_engine; then
+        log_success "Docker Engine instalado correctamente."
+        report_add_core_service "Docker Engine" "✓ (Instalado)"
+    else
+        log_error "La instalación de Docker Engine ha fallado. Abortando despliegue."
+        exit 1
+    fi
+fi
+
+    # Verificación de Docker Compose V2
     if docker compose version &>/dev/null; then
         log_success "Docker Compose V2 detectado y operativo."
         report_add_core_service "Docker Compose" "✓ (V2 Activo)"
     else
-        log_error "Docker Compose V2 es mandatorio para DockerWarrior. Abortando."
-        exit 1
+        log_error "Docker Compose V2 no disponible tras el aprovisionamiento. Abortando."
+    exit 1
     fi
 
     # Asegurar la existencia de la red perimetral global aislada
