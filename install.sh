@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Orquestador Principal de Infraestructura
+# DockerWarrior - Orquestador Principal de Infraestructura (v1.0-RC1)
 # ==============================================================================
 set -Eeuo pipefail
 
@@ -13,8 +13,6 @@ source "${BASE_DIR}/lib/core/logger.sh"
 source "${BASE_DIR}/lib/core/utils.sh"
 source "${BASE_DIR}/lib/core/system.sh"
 source "${BASE_DIR}/lib/core/engine.sh"
-
-# Commit 1: Corrección crítica de la carga de la capa de interfaz de usuario
 source "${BASE_DIR}/lib/ui/menu.sh"
 source "${BASE_DIR}/lib/ui/dialogs.sh"
 
@@ -29,11 +27,22 @@ main() {
     validate_required_packages
     install_docker_engine
     
-    # Commit 2: Centralización y creación de la infraestructura de red compartida global
+    # Commit 2: Gestión idempotente y segura de la red global (Control de errores real)
     log_info "Configurando infraestructura global compartida..."
-    docker network create dw_proxy_network 2>/dev/null || true
+    if docker network inspect dw_proxy_network &>/dev/null; then
+        log_info "La red global 'dw_proxy_network' ya existe. Reutilizando infraestructura."
+    else
+        log_info "Creando red global compartida 'dw_proxy_network'..."
+        if docker network create dw_proxy_network >/dev/null; then
+            log_success "Red global 'dw_proxy_network' creada con éxito."
+        else
+            log_error "Fallo crítico al crear la red 'dw_proxy_network'."
+            log_error "Verifique que el daemon de Docker esté activo y respondiendo."
+            exit 1
+        fi
+    fi
     
-    # Commit 3: Separación estricta entre carga de módulos e invocación explícita
+    # Commit 1: Carga pura de módulos core (Sin efectos secundarios automáticos)
     if [[ -f "${BASE_DIR}/apps/core/dockge.sh" ]]; then
         source "${BASE_DIR}/apps/core/dockge.sh"
     fi
@@ -41,7 +50,7 @@ main() {
         source "${BASE_DIR}/apps/core/portainer.sh"
     fi
     
-    # Invocación explícita y segura sin efectos secundarios ocultos
+    # Invocación explícita y secuencial bajo nomenclatura unificada
     log_info "Instalando componentes de infraestructura base..."
     install_dockge
     install_portainer

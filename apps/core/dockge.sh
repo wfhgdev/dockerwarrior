@@ -1,39 +1,40 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Despliegue de Dockge (Administrador de Stacks)
+# DockerWarrior Core App - Dockge Management Suite
 # ==============================================================================
 
-deploy_dockge() {
-    log_info "Preparando el entorno de directorios para Dockge..."
+install_dockge() {
+    log_info "Iniciando instalación del orquestador visual Dockge..."
     
-    # Crear los directorios base definidos en defaults.conf
-    mkdir -p "${STACKS_ROOT}" "${DOCKGE_ROOT}"
-
-    log_info "Generando manifiesto Compose para Dockge (Versión ${VERSION_DOCKGE})..."
+    local dockge_dir="/opt/dockge"
+    local stacks_dir="/opt/stacks"
     
-    cat <<EOF > "${DOCKGE_ROOT}/compose.yaml"
+    # Garantizar directorios operativos del sistema
+    mkdir -p "${dockge_dir}" "${stacks_dir}"
+    
+    # Descargar o escribir compose.yaml local para Dockge de forma estática
+    cat << 'EOF' > "${dockge_dir}/compose.yaml"
 services:
   dockge:
-    image: louislam/dockge:${VERSION_DOCKGE}
-    container_name: dw-dockge
+    image: 'louislam/dockge:1'
     restart: unless-stopped
     ports:
-      - "${DOCKGE_PORT}:5001"
+      - '5001:5001'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/app/data
-      - ${STACKS_ROOT}:${STACKS_ROOT}
+      - /opt/stacks:/opt/stacks
     environment:
-      - DOCKGE_STACKS_DIR=${STACKS_ROOT}
-networks:
-  default:
-    name: ${DW_NETWORK}
-    external: true
+      - DOCKGE_STACKS_DIR=/opt/stacks
 EOF
 
-    log_info "Lanzando el contenedor de Dockge..."
-    cd "${DOCKGE_ROOT}"
-    docker compose up -d > /dev/null
+    # Levantar la instancia Core de administración de forma nativa
+    if docker compose -f "${dockge_dir}/compose.yaml" up -d &>/dev/null; then
+        log_success "Dockge se ha desplegado correctamente en el puerto 5001."
+    else
+        log_error "Fallo al inicializar el contenedor de Dockge."
+        return 1
+    fi
     
-    log_success "Dockge desplegado correctamente en el puerto ${DOCKGE_PORT}."
+    return 0
 }

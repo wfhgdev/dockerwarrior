@@ -1,38 +1,31 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Despliegue de Portainer Community Edition
+# DockerWarrior Core App - Portainer Community Edition
 # ==============================================================================
 
-deploy_portainer() {
-    local portainer_dir="${STACKS_ROOT}/portainer"
+install_portainer() {
+    log_info "Iniciando instalación del administrador avanzado Portainer CE..."
     
-    log_info "Configurando el Stack de Portainer en la ruta de Dockge..."
-    mkdir -p "${portainer_dir}"
-
-    log_info "Generando manifiesto Compose para Portainer CE (Versión ${VERSION_PORTAINER})..."
+    local portainer_volume="portainer_data"
     
-    cat <<EOF > "${portainer_dir}/compose.yaml"
-services:
-  portainer:
-    image: portainer/portainer-ce:${VERSION_PORTAINER}
-    container_name: dw-portainer
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    ports:
-      - "${PORTAINER_PORT}:9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/data
-networks:
-  default:
-    name: ${DW_NETWORK}
-    external: true
-EOF
-
-    log_info "Lanzando el Stack de Portainer..."
-    cd "${portainer_dir}"
-    docker compose up -d > /dev/null
-
-    log_success "Portainer CE desplegado correctamente (HTTPS) en el puerto ${PORTAINER_PORT}."
+    # Crear volumen persistente si no existe
+    if ! docker volume inspect "${portainer_volume}" &>/dev/null; then
+        docker volume create "${portainer_volume}" >/dev/null
+    fi
+    
+    # Lanzar el contenedor de Portainer de infraestructura
+    if docker run -d \
+        -p 9443:9443 \
+        --name portainer \
+        --restart=always \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "${portainer_volume}":/data \
+        portainer/portainer-ce:latest &>/dev/null; then
+        log_success "Portainer CE se ha desplegado correctamente en el puerto https 9443."
+    else
+        log_error "Fallo al inicializar el contenedor de Portainer."
+        return 1
+    fi
+    
+    return 0
 }
