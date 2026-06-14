@@ -1,27 +1,23 @@
 #!/usr/bin/env bash
-
-ui_message() {
-    local title="${1}"
-    local text="${2}"
-    whiptail --title "${title}" --msgbox "${text}" 12 65
-}
-
-ui_confirm() {
-    local title="${1}"
-    local text="${2}"
-    if whiptail --title "${title}" --yesno "${text}" 12 65 \
-        --yes-button "${MSG_BTN_OK:-Yes}" --no-button "${MSG_BTN_CANCEL:-No}"; then
-        return 0
-    else
-        return 1
-    fi
-}
+# ==============================================================================
+# DockerWarrior UI - Abstracciones de Cuadros de Diálogo (Whiptail Wrapper)
+# ==============================================================================
 
 ui_checklist() {
     local title="${1}"
-    local text="${2}"
+    local subtitle="${2}"
     shift 2
     local options=("$@")
     
-    whiptail --title "${title}" --checklist "${text}" 22 80 12 "${options[@]}" 3>&1 1>&2 2>&3
+    # Dimensionamiento adaptativo base para la interfaz de consola
+    local height=20
+    local width=72
+    local list_height=10
+    
+    # Ejecución controlada redirigiendo canales de salida de datos estándar
+    whiptail --title "${title}" \
+             --checklist "${subtitle}" \
+             "${height}" "${width}" "${list_height}" \
+             "${options[@]}" \
+             3>&1 1>&2 2>&3
 }
