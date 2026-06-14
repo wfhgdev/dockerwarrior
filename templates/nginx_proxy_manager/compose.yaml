@@ -12,6 +12,7 @@ services:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
+      - default
       - dw_proxy_network
     depends_on:
       - db
@@ -27,7 +28,7 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
     networks:
-      - dw_proxy_network
+      - default
 
 networks:
   dw_proxy_network:
