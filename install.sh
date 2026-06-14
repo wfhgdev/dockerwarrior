@@ -1,115 +1,86 @@
 #!/usr/bin/env bash
+# ==============================================================================
+# DockerWarrior - Orquestador Principal de Infraestructura
+# ==============================================================================
 set -Eeuo pipefail
 
+# Definición e importación de la ruta base del proyecto
+export BASE_DIR
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Librerías Core
+# Carga de subsistemas y librerías Core
 source "${BASE_DIR}/lib/core/logger.sh"
 source "${BASE_DIR}/lib/core/utils.sh"
 source "${BASE_DIR}/lib/core/system.sh"
-
-# Configuraciones
-source "${BASE_DIR}/config/defaults.conf"
-source "${BASE_DIR}/config/versions.conf"
-
-# Interfaz e i18n (NUEVO)
-source "${BASE_DIR}/lib/ui/dialogs.sh"
-source "${BASE_DIR}/lib/ui/menu.sh"
-
-# Módulos de Docker
-source "${BASE_DIR}/lib/docker/install.sh"
-source "${BASE_DIR}/lib/docker/network.sh"
-source "${BASE_DIR}/apps/core/dockge.sh"
-source "${BASE_DIR}/apps/core/portainer.sh"
-
-error_handler() {
-    local exit_code="${1}"
-    local line_number="${2}"
-    log_error "Fallo inesperado en la línea ${line_number} (Código: ${exit_code})."
-    log_error "Registro completo en: ${LOG_FILE}"
-    exit "${exit_code}"
-}
-
-trap 'error_handler $? $LINENO' ERR
+source "${BASE_DIR}/lib/core/engine.sh"
+source "${BASE_DIR}/lib/ui/menus.sh"
 
 main() {
-    clear
+    # 1. Validaciones de entorno en el Host (Fases 1-3)
     check_root
-    init_log_file
-    
-    log_info "1. Secuencia de auditoría del entorno..."
     validate_interactive_terminal
     validate_os
     validate_architecture
-    validate_hardware
+    
+    # 2. Preparación de dependencias del sistema operativo
     validate_required_packages
+    install_docker_engine
     
-    # Cargar idioma basado en el sistema
-    load_language ""
+    # 3. Inicialización de Infraestructura Común Global
+    log_info "Configurando infraestructura global compartida..."
+    docker network create dw_proxy_network 2>/dev/null || true
     
-    # Mostrar menús antes de instalar nada
-    ui_main_menu
+    # 4. Despliegue de herramientas base de gestión (Core Apps)
+    # Estos scripts se invocan desde apps/core/ de forma nativa
+    if [[ -f "${BASE_DIR}/apps/core/dockge.sh" ]]; then
+        source "${BASE_DIR}/apps/core/dockge.sh"
+    fi
+    if [[ -f "${BASE_DIR}/apps/core/portainer.sh" ]]; then
+        source "${BASE_DIR}/apps/core/portainer.sh"
+    fi
     
-    local selected_apps
-    selected_apps=$(ui_select_apps)
-    
+    # 5. Captura del catálogo dinámico (Interfaz Whiptail)
     local selected_apps_str
     selected_apps_str=$(ui_select_apps)
     
-    # Convertir la salida de whiptail (espacios) en un array
+    # Convertir la salida de la interfaz en una lista iterable de Bash
     read -r -a app_array <<< "${selected_apps_str}"
     
     if [[ ${#app_array[@]} -eq 0 ]]; then
-        log_warn "No se seleccionó ninguna aplicación para desplegar."
-    else
-        log_info "Iniciando despliegue de ${#app_array[@]} stack(s)..."
-        
-        # Bucle de despliegue (Fase 6)
-        for app_id in "${app_array[@]}"; do
-            if ! core_deploy_app "${app_id}"; then
-                log_error "Falló el despliegue de ${app_id}."
-                log_error "Abortando instalación por política fail-fast."
-                exit 1
-            fi
-            echo "" # Espaciado estético para la consola
-        done
-        
-        # Resumen Final (Pre-Fase 7)
-        echo "======================================================================"
-        log_success "DockerWarrior ha finalizado correctamente."
-        echo ""
-        echo "Stacks preparados:"
-        for app_id in "${app_array[@]}"; do
-            echo -e " \e[32m✓\e[0m ${app_id}"
-        done
-        echo ""
-        echo "Ubicación:"
-        echo " /opt/stacks/"
-        echo ""
-        echo "Siguiente paso:"
-        echo " Acceda a Dockge y despliegue los stacks preparados."
-        echo "======================================================================"
+        log_warn "Instalación finalizada. No se seleccionaron stacks adicionales."
+        exit 0
     fi
-
-    clear
-    log_info "Iniciando despliegue de la infraestructura..."
     
-    install_docker_engine
-    configure_dw_network
-    deploy_dockge
-    deploy_portainer
-
+    log_info "Procesando el despliegue de ${#app_array[@]} stack(s)..."
     echo ""
-    log_success "======================================================================"
-    log_success " 🎉 ENTORNO CORE DESPLEGADO CON ÉXITO "
-    log_success "======================================================================"
     
-    if [[ -z "${selected_apps}" ]]; then
-        log_warn "No seleccionaste ninguna aplicación adicional."
-    else
-        log_info "Preparado para instalar: ${selected_apps}"
-        log_info "(La lógica de instalación individual se implementará en la Fase 6)"
-    fi
+    # 6. Bucle de despliegue declarativo con Política Fail-Fast Estricta
+    for app_id in "${app_array[@]}"; do
+        if ! core_deploy_app "${app_id}"; then
+            echo ""
+            log_error "======================================================================"
+            log_error "Fallo crítico en la preparación del servicio: ${app_id}"
+            log_error "Instalación abortada de inmediato para proteger la consistencia."
+            log_error "======================================================================"
+            exit 1
+        fi
+        echo "" 
+    done
+    
+    # 7. Resumen de Salida y Cierre de Operaciones
+    echo "======================================================================"
+    log_success "DockerWarrior ha finalizado correctamente."
+    echo ""
+    echo "Stacks preparados:"
+    for app_id in "${app_array[@]}"; do
+        echo -e " \e[32m✓\e[0m ${app_id}"
+    done
+    echo ""
+    echo "Ubicación de los Stacks:"
+    echo " /opt/stacks/"
+    echo ""
+    echo "Siguiente paso obligatorio:"
+    echo " Acceda al panel web de Dockge para levantar los entornos preparados."
     echo "======================================================================"
 }
 

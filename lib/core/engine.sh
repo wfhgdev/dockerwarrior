@@ -22,7 +22,6 @@ resolve_placeholder() {
             cat /etc/timezone 2>/dev/null || echo "UTC"
             ;;
         BASE_DOMAIN)
-            # Intenta leer desde el archivo de configuración global defaults.conf ya cargado
             echo "${GLOBAL_BASE_DOMAIN:-${BASE_DOMAIN:-micasa.duckdns.org}}"
             ;;
         GLOBAL)
@@ -40,7 +39,7 @@ process_template() {
     local template_file="${1}"
     local output_file="${2}"
 
-    # Crear el archivo de destino vacío con permisos 600 estrictos desde el milisegundo cero
+    # Crear el archivo de destino vacío con permisos 600 estrictos desde el primer instante
     touch "${output_file}"
     chmod 600 "${output_file}"
     > "${output_file}"
@@ -81,8 +80,8 @@ core_deploy_app() {
         echo -e "\e[33m[WARN]\e[0m metadata.conf no encontrado para: ${app_id}" >&2
     fi
 
-    # Verificar si la aplicación requiere validaciones de red previas
-    if [[ -n "${REQUIRED_NETWORKS:-}" ]]; then
+    # Verificar si la aplicación requiere validaciones de red previas (Soporte Array DW-AppSpec v1.0)
+    if declare -p REQUIRED_NETWORKS &>/dev/null; then
         for net in "${REQUIRED_NETWORKS[@]}"; do
             if ! docker network inspect "${net}" >/dev/null 2>&1; then
                 echo -e "\e[31m[ERROR]\e[0m Red global requerida no encontrada: ${net}" >&2

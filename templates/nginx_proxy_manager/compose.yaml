@@ -3,7 +3,6 @@ services:
     image: 'jc21/nginx-proxy-manager:latest'
     restart: unless-stopped
     ports:
-      # NPM es infraestructura core: se le permite exponer puertos
       - '80:80'
       - '81:81'
       - '443:443'
@@ -19,7 +18,7 @@ services:
       - db
     networks:
       - default
-      - npm_network
+      - dw_proxy_network
 
   db:
     image: 'mariadb:10.11'
@@ -35,5 +34,5 @@ services:
       - ./mysql:/var/lib/mysql
 
 networks:
-  npm_network:
+  dw_proxy_network:
     external: true
