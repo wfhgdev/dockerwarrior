@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior Core v1.0.1 - Subsistema de Reportes e Inventario (Fase 6.10)
+# DockerWarrior Core v1.0.1 - Subsistema de Reportes e Inventario (Fase 6.10 Final)
 # ==============================================================================
 set -Eeuo pipefail
 
@@ -29,16 +29,17 @@ report_init() {
     local host_arch
     host_arch=$(uname -m)
 
+    # CORRECCIÓN 1: Eliminación radical de textos en inglés hardcodeados
     read -r -d '' _DW_REP_HOST_BUFFER << EOF || true
-Framework:
+${TXT_REPORT_FRAMEWORK:-Framework}:
   ✓ DockerWarrior Core ${core_ver}
   ✓ DW-AppSpec ${appspec_ver}
 
-Host:
+${TXT_REPORT_HOST:-Servidor}:
   ${os_target}
-  Hostname: ${host_name}
-  IP: ${primary_ip}
-  Architecture: ${host_arch}
+  ${TXT_REPORT_HOSTNAME:-Nombre del host}: ${host_name}
+  ${TXT_REPORT_IP:-Dirección IP}: ${primary_ip}
+  ${TXT_REPORT_ARCH:-Arquitectura}: ${host_arch}
 EOF
 }
 
@@ -61,7 +62,7 @@ report_add_application() {
     local app_name="${app_id}"
     local container_status="${TXT_REPORT_STATUS_PREP:-Prepared in Dockge}"
 
-    # 1. Corrección de lectura usando el formato delimitado por tuberías |
+    # Corrección de lectura usando el formato delimitado por tuberías |
     if [[ -f "${apps_conf}" ]]; then
         local found_name
         found_name=$(awk -F'|' -v id="${app_id}" '$1 == id {print $2}' "${apps_conf}" 2>/dev/null || true)
@@ -75,9 +76,8 @@ report_add_application() {
         return 0
     fi
 
-    # 2. Inspección en caliente del estado del daemon de Docker
+    # Inspección en caliente del estado del daemon de Docker
     if command -v docker &>/dev/null; then
-        # Detectar patrones de nombres estándar generados por compose/dockge
         if docker ps --format '{{.Names}}' | grep -E "^${app_id}(-|_)" &>/dev/null; then
             container_status="${TXT_REPORT_STATUS_RUN:-Running}"
         fi
@@ -128,13 +128,10 @@ report_generate_file() {
     local target_dir="/opt/dockerwarrior/reports"
     local target_file="${target_dir}/deployment-report.txt"
 
-    # Garantizar la creación idempotente del nuevo árbol de directorios operacionales
     if [[ ! -d "${target_dir}" ]]; then
         mkdir -p "${target_dir}"
     fi
 
     _report_build_payload > "${target_file}"
-    
-    # Aplicar permisos administrativos semi-abiertos (Lectura grupal permitida sin secretos)
     chmod 640 "${target_file}"
 }

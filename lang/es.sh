@@ -26,6 +26,13 @@ TXT_REPORT_HEADER_PANELS="Paneles de Administración:"
 TXT_REPORT_HEADER_APPS="Aplicaciones desplegadas:"
 TXT_REPORT_HEADER_REC="Pasos recomendados:"
 
+# Variables de internacionalización de metadatos del Host & Core
+TXT_REPORT_FRAMEWORK="Framework"
+TXT_REPORT_HOST="Servidor"
+TXT_REPORT_HOSTNAME="Nombre del host"
+TXT_REPORT_IP="Dirección IP"
+TXT_REPORT_ARCH="Arquitectura"
+
 TXT_REPORT_PATH="Ruta:"
 TXT_REPORT_STATUS_HEADER="Estado:"
 TXT_REPORT_STATUS_PREP="Preparado en Dockge"

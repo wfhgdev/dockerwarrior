@@ -17,7 +17,7 @@ APP_LIMESURVEY_DESC="Professional survey platform"
 APP_FAIL2BAN_DESC="Intrusion prevention software framework"
 APP_MAILSERVER_DESC="Fullstack email server"
 # ==============================================================================
-# DOCKERWARRIOR I18N v1.0.1 - REPORT SUBSYSTEM (ENGLISH)
+# DOCKERWARRIOR I18N v1.0.1 - REPORT SUBSYSTEM (ENGLISH COHESIVE)
 # ==============================================================================
 TXT_REPORT_TITLE="DockerWarrior Deployment Report"
 TXT_REPORT_HEADER_GEN="General information:"
@@ -25,6 +25,13 @@ TXT_REPORT_HEADER_CORE="Base Infrastructure:"
 TXT_REPORT_HEADER_PANELS="Administration Panels:"
 TXT_REPORT_HEADER_APPS="Deployed applications:"
 TXT_REPORT_HEADER_REC="Recommended steps:"
+
+# Host & Core Metadata i18n variables
+TXT_REPORT_FRAMEWORK="Framework"
+TXT_REPORT_HOST="Host"
+TXT_REPORT_HOSTNAME="Hostname"
+TXT_REPORT_IP="IP Address"
+TXT_REPORT_ARCH="Architecture"
 
 TXT_REPORT_PATH="Path:"
 TXT_REPORT_STATUS_HEADER="Status:"
