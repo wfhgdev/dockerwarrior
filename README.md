@@ -218,7 +218,7 @@ dockerwarrior/
 
 ---
 
-# ⚡ Quick Installation
+# ⚡ Quick Installation:
 
 ```bash
 git clone https://github.com/wfhgdev/dockerwarrior.git && cd dockerwarrior && chmod +x install.sh && sudo ./install.sh
