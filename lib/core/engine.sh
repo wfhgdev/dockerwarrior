@@ -1,25 +1,14 @@
-cat << 'EOF' > implement_engine.sh
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-echo "⚙️ Construyendo el Motor Genérico de Despliegue..."
-
-# 1. Crear el archivo del motor
-cat << 'INNER' > lib/core/engine.sh
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Motor Genérico de Plantillas y Despliegue
+# DockerWarrior Core - Motor de Plantillas y Despliegue Dinámico (v1.0)
 # ==============================================================================
 
-# Enrutador de Tokens: Recibe el contenido de {{...}} y devuelve el valor real
+# Enrutador de placeholders: Evalúa y retorna el valor de cada token detectado
 resolve_placeholder() {
     local token="${1}"
-    
-    # Separar el TIPO del ARGUMENTO (ej: SECRET:32 -> type=SECRET, arg=32)
     local type="${token%%:*}"
     local arg="${token#*:}"
     
-    # Si no hay dos puntos, arg será igual a type. Lo limpiamos.
     if [[ "${type}" == "${arg}" ]]; then
         arg=""
     fi
@@ -27,38 +16,36 @@ resolve_placeholder() {
     case "${type}" in
         SECRET)
             local length="${arg:-32}"
-            # Utilizamos openssl y tr (nativos en Ubuntu/Debian) para generar secretos seguros
             openssl rand -base64 64 | tr -dc 'a-zA-Z0-9' | head -c "${length}"
             ;;
         SYSTEM_TZ)
             cat /etc/timezone 2>/dev/null || echo "UTC"
             ;;
+        BASE_DOMAIN)
+            # Intenta leer desde el archivo de configuración global defaults.conf ya cargado
+            echo "${GLOBAL_BASE_DOMAIN:-${BASE_DOMAIN:-micasa.duckdns.org}}"
+            ;;
         GLOBAL)
-            # Para variables como {{GLOBAL:DOMAIN}}. 
-            # Requiere que exista una variable de entorno llamada GLOBAL_DOMAIN
             local var_name="GLOBAL_${arg}"
             echo "${!var_name:-}"
             ;;
         *)
-            log_warn "Token no reconocido en plantilla: {{${token}}}" >&2
             echo "UNRESOLVED_${token}"
             ;;
     esac
 }
 
-# Analizador Léxico: Procesa el archivo env.template línea por línea
+# Analizador léxico: Procesa las plantillas línea a línea de forma segura
 process_template() {
     local template_file="${1}"
     local output_file="${2}"
 
-    # Vaciar o crear el archivo de salida con permisos restrictivos
-    > "${output_file}"
+    # Crear el archivo de destino vacío con permisos 600 estrictos desde el milisegundo cero
+    touch "${output_file}"
     chmod 600 "${output_file}"
+    > "${output_file}"
 
-    # Leer línea a línea, preservando espacios en blanco (IFS=)
     while IFS= read -r line || [[ -n "${line}" ]]; do
-        
-        # Bucle para procesar múltiples placeholders en una sola línea
         while [[ "${line}" =~ (.*)\{\{([^}]+)\}\}(.*) ]]; do
             local prefix="${BASH_REMATCH[1]}"
             local token="${BASH_REMATCH[2]}"
@@ -66,71 +53,80 @@ process_template() {
 
             local resolved_value
             resolved_value=$(resolve_placeholder "${token}")
-
-            # Reconstruir la línea con el valor inyectado
             line="${prefix}${resolved_value}${suffix}"
         done
-        
         echo "${line}" >> "${output_file}"
     done < "${template_file}"
 }
 
-# Flujo Principal de Despliegue de Aplicación
+# Pipeline principal de aprovisionamiento
 core_deploy_app() {
     local app_id="${1}"
-    local template_dir="${BASE_DIR}/templates/${app_id}"
+    local template_dir="${BASE_DIR:-.}/templates/${app_id}"
     local target_dir="/opt/stacks/${app_id}"
     
-    log_info "Iniciando despliegue de infraestructura para: ${app_id}..."
+    echo -e "\e[34m[INFO]\e[0m Iniciando despliegue de infraestructura: ${app_id}"
 
-    # 1. Validación de origen
     if [[ ! -d "${template_dir}" ]]; then
-        log_error "Directorio de plantillas no encontrado para ${app_id} en ${template_dir}"
+        echo -e "\e[31m[ERROR]\e[0m Directorio de plantillas no encontrado: ${template_dir}" >&2
         return 1
     fi
 
-    # 2. Lectura de Metadatos
+    # Cargar metadatos extensibles de la aplicación
     local meta_file="${template_dir}/metadata.conf"
     if [[ -f "${meta_file}" ]]; then
         # shellcheck source=/dev/null
         source "${meta_file}"
-        log_info "Procesando: ${APP_NAME:-$app_id} (Versión: ${VERSION:-Desconocida})"
     else
-        log_warn "Archivo metadata.conf ausente en ${app_id}."
+        echo -e "\e[33m[WARN]\e[0m metadata.conf no encontrado para: ${app_id}" >&2
     fi
 
-    # 3. Hook Pre-Instalación (Proceso aislado)
+    # Verificar si la aplicación requiere validaciones de red previas
+    if [[ -n "${REQUIRED_NETWORKS:-}" ]]; then
+        for net in "${REQUIRED_NETWORKS[@]}"; do
+            if ! docker network inspect "${net}" >/dev/null 2>&1; then
+                echo -e "\e[31m[ERROR]\e[0m Red global requerida no encontrada: ${net}" >&2
+                return 1
+            fi
+        done
+    fi
+
+    # Hook Pre-Instalación ejecutado de forma aislada (Proceso Hijo)
     if [[ -f "${template_dir}/pre_install.sh" ]]; then
-        log_info "Ejecutando hook pre-instalación..."
-        bash "${template_dir}/pre_install.sh" "${app_id}"
+        if ! bash "${template_dir}/pre_install.sh" "${app_id}"; then
+            echo -e "\e[31m[ERROR]\e[0m El hook pre_install de ${app_id} falló." >&2
+            return 1
+        fi
     fi
 
-    # 4. Aprovisionamiento del directorio destino
+    # Crear estructura destino en producción
     mkdir -p "${target_dir}"
     chmod 750 "${target_dir}"
 
-    # 5. Plantillado y Clonación
+    # Copiar archivos base de orquestación estática
     if [[ -f "${template_dir}/compose.yaml" ]]; then
         cp "${template_dir}/compose.yaml" "${target_dir}/compose.yaml"
+    else
+        echo -e "\e[31m[ERROR]\e[0m compose.yaml ausente en ${template_dir}" >&2
+        return 1
     fi
 
+    # Procesar mapa de variables de entorno
     if [[ -f "${template_dir}/env.template" ]]; then
-        log_info "Transmutando variables de entorno..."
-        process_template "${template_dir}/env.template" "${target_dir}/.env"
+        if ! process_template "${template_dir}/env.template" "${target_dir}/.env"; then
+            echo -e "\e[31m[ERROR]\e[0m Error procesando el archivo env.template" >&2
+            return 1
+        fi
     fi
 
-    # 6. Hook Post-Instalación (Proceso aislado)
+    # Hook Post-Instalación ejecutado de forma aislada (Proceso Hijo)
     if [[ -f "${template_dir}/post_install.sh" ]]; then
-        log_info "Ejecutando hook post-instalación..."
-        bash "${template_dir}/post_install.sh" "${app_id}" "${target_dir}"
+        if ! bash "${template_dir}/post_install.sh" "${app_id}" "${target_dir}"; then
+            echo -e "\e[31m[ERROR]\e[0m El hook post_install de ${app_id} falló." >&2
+            return 1
+        fi
     fi
 
-    log_success "${app_id} empaquetado en ${target_dir}. Listo para ser adoptado por Dockge."
+    echo -e "\e[32m[OK]\e[0m ${APP_NAME:-$app_id} preparado correctamente en ${target_dir}"
+    return 0
 }
-INNER
-
-echo "✅ Motor de despliegue generado en lib/core/engine.sh"
-rm implement_engine.sh
-EOF
-
-bash implement_engine.sh
