@@ -50,6 +50,8 @@ fi
 # --- CARGA DE SUBSISTEMAS DEL CORE ---
 # Se cargan de manera secuencial garantizando la disponibilidad de sus funciones
 if [[ -f "lib/core/logger.sh" ]]; then source "lib/core/logger.sh"; else echo "[ERR] lib/core/logger.sh ausente." >&2; exit 1; fi
+if [[ -f "lib/core/system.sh" ]]; then source "lib/core/system.sh"; else echo "[ERR] lib/core/system.sh ausente." >&2; exit 1; fi
+if [[ -f "lib/docker/install.sh" ]]; then source "lib/docker/install.sh"; else echo "[ERR] lib/docker/install.sh ausente." >&2; exit 1; fi
 if [[ -f "lib/core/engine.sh" ]]; then source "lib/core/engine.sh"; else echo "[ERR] lib/core/engine.sh ausente." >&2; exit 1; fi
 if [[ -f "lib/core/report.sh" ]]; then source "lib/core/report.sh"; else echo "[ERR] lib/core/report.sh ausente." >&2; exit 1; fi
 
@@ -80,13 +82,13 @@ main() {
         log_success "Docker Engine detectado en el sistema host."
         report_add_core_service "Docker Engine" "✓ (${TXT_REPORT_STATUS_RUN:-En ejecución})"
     else
-        log_warn "Docker Engine no detectado. Iniciando aprovisionamiento automático..."
+    log_warn "Docker Engine no detectado. Procediendo con el aprovisionamiento automatizado..."
 
     if install_docker_engine; then
         log_success "Docker Engine instalado correctamente."
         report_add_core_service "Docker Engine" "✓ (Instalado)"
     else
-        log_error "La instalación de Docker Engine ha fallado. Abortando despliegue."
+        log_error "La instalación automática de Docker Engine ha fallado."
         exit 1
     fi
 fi
