@@ -13,7 +13,10 @@ source "${BASE_DIR}/lib/core/logger.sh"
 source "${BASE_DIR}/lib/core/utils.sh"
 source "${BASE_DIR}/lib/core/system.sh"
 source "${BASE_DIR}/lib/core/engine.sh"
-source "${BASE_DIR}/lib/ui/menus.sh"
+
+# Commit 1: Corrección crítica de la carga de la capa de interfaz de usuario
+source "${BASE_DIR}/lib/ui/menu.sh"
+source "${BASE_DIR}/lib/ui/dialogs.sh"
 
 main() {
     # 1. Validaciones de entorno en el Host (Fases 1-3)
@@ -26,12 +29,11 @@ main() {
     validate_required_packages
     install_docker_engine
     
-    # 3. Inicialización de Infraestructura Común Global
+    # Commit 2: Centralización y creación de la infraestructura de red compartida global
     log_info "Configurando infraestructura global compartida..."
     docker network create dw_proxy_network 2>/dev/null || true
     
-    # 4. Despliegue de herramientas base de gestión (Core Apps)
-    # Estos scripts se invocan desde apps/core/ de forma nativa
+    # Commit 3: Separación estricta entre carga de módulos e invocación explícita
     if [[ -f "${BASE_DIR}/apps/core/dockge.sh" ]]; then
         source "${BASE_DIR}/apps/core/dockge.sh"
     fi
@@ -39,7 +41,12 @@ main() {
         source "${BASE_DIR}/apps/core/portainer.sh"
     fi
     
-    # 5. Captura del catálogo dinámico (Interfaz Whiptail)
+    # Invocación explícita y segura sin efectos secundarios ocultos
+    log_info "Instalando componentes de infraestructura base..."
+    install_dockge
+    install_portainer
+    
+    # 3. Captura del catálogo dinámico (Interfaz Whiptail)
     local selected_apps_str
     selected_apps_str=$(ui_select_apps)
     
@@ -54,7 +61,7 @@ main() {
     log_info "Procesando el despliegue de ${#app_array[@]} stack(s)..."
     echo ""
     
-    # 6. Bucle de despliegue declarativo con Política Fail-Fast Estricta
+    # 4. Bucle de despliegue declarativo con Política Fail-Fast Estricta
     for app_id in "${app_array[@]}"; do
         if ! core_deploy_app "${app_id}"; then
             echo ""
@@ -67,7 +74,7 @@ main() {
         echo "" 
     done
     
-    # 7. Resumen de Salida y Cierre de Operaciones
+    # 5. Resumen de Salida y Cierre de Operaciones
     echo "======================================================================"
     log_success "DockerWarrior ha finalizado correctamente."
     echo ""
