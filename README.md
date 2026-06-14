@@ -1,224 +1,174 @@
-<div align="center">
+# ⚔️ DockerWarrior
 
-# ⚔️ DockerWarrior by William H.
+<p align="center">
+  <strong>The Ultimate Self-Hosting Docker Deployment Framework</strong>
+</p>
 
-### The Self-Hosted Docker Deployment Framework
-
-<img src="docs/images/dockerwarrior-banner.png" alt="DockerWarrior Banner">
-
-**Build your private cloud with the power of Docker, the simplicity of a wizard, and the reliability of an enterprise-grade framework.**
-
-[![Version](https://img.shields.io/badge/version-Core%20v1.0-blue.svg)]()
-[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)]()
-[![Platform](https://img.shields.io/badge/platform-Ubuntu%20Server-orange.svg)]()
-
-</div>
+<p align="center">
+  Deploy your private cloud infrastructure in minutes with a secure, modular and production-ready Docker automation framework.
+</p>
 
 ---
 
 ## 🚀 What is DockerWarrior?
 
-DockerWarrior is not just another Docker installation script.
+DockerWarrior is an automated installation and deployment framework designed to transform a fresh Linux server into a complete self-hosting platform.
 
-It is a **declarative self-hosted deployment framework** designed to transform a clean Linux server into a complete Docker ecosystem with a guided installation experience.
+Unlike traditional installation scripts, DockerWarrior follows a **declarative architecture** where applications are packaged as independent modules and deployed through a generic infrastructure engine.
 
-The DockerWarrior Core installs and configures:
+The project installs and configures the complete Docker ecosystem:
 
 - 🐳 Docker Engine
-- 🧩 Docker Compose
-- 📦 Dockge stack manager
-- 🖥️ Portainer management interface
-- 🌐 Reverse proxy infrastructure
-- 🔐 Secure secrets management engine
-- 🌍 Multi-language interactive interface
+- 🧩 Docker Compose Plugin
+- 📦 Dockge Stack Manager
+- 🎛️ Portainer CE
 
-Once the core is installed, applications are deployed through independent packages that follow the **DW-AppSpec v1.0 standard**.
+Once the foundation is ready, DockerWarrior allows the administrator to deploy additional services through an interactive terminal interface.
 
 ---
 
-# 🏛️ DockerWarrior Architecture
+# ✨ Core Principles
 
-```
-                     DockerWarrior Core
-                              |
-      ------------------------------------------------
-      |                      |                       |
- Infrastructure          Deployment Engine       User Interface
-      |                      |                       |
- Docker               DW-AppSpec v1.0          Whiptail TUI
- Dockge               Templates                EN / ES
- Portainer            Secrets Engine
- Proxy Network        Environment Injection
-                              |
-                              |
-                    Applications Catalog
-                              |
-    ---------------------------------------------------
-    |         |          |          |         |        |
-Vaultwarden Nextcloud Jellyfin Immich WG-Easy AdGuard
-```
+DockerWarrior has been designed following enterprise infrastructure principles:
 
----
+### 🔹 Modular Architecture
 
-# ✨ Key Features
-
-## 🧱 Stable Core Architecture
-
-DockerWarrior Core v1.0 is designed to remain unchanged while the application ecosystem grows.
-
-Adding a new service does not require modifying:
-
-- `install.sh`
-- `lib/core/engine.sh`
-- Infrastructure modules
-
-New applications are simply added as:
+Each application is a self-contained package inside:
 
 ```
 
 templates/<app_id>/
-├── metadata.conf
-├── compose.yaml
-├── env.template
-├── pre_install.sh (optional)
-└── post_install.sh (optional)
 
 ```
+
+Adding new applications does not require modifications to the core engine.
 
 ---
 
-## 🔐 Automatic Secret Generation
+### 🔹 Declarative Deployment Engine
 
-No default passwords.
-No insecure credentials stored in Git.
+The deployment workflow is handled by a generic engine:
 
-DockerWarrior generates secure secrets during deployment:
-
-```env
-DATABASE_PASSWORD={{SECRET:32}}
-JWT_SECRET={{SECRET:64}}
 ```
 
-Generated `.env` files are automatically protected:
+lib/core/engine.sh
 
-```bash
-chmod 600 .env
 ```
+
+The engine is responsible for:
+
+- Creating production stacks under `/opt/stacks`
+- Processing Docker Compose templates
+- Generating secure secrets dynamically
+- Managing application lifecycle hooks
+- Maintaining a predictable deployment pipeline
 
 ---
 
-## 🌐 Reverse Proxy Ready
+### 🔹 Security by Default
 
-Applications are designed to integrate through a shared Docker network:
+DockerWarrior follows the **DW-AppSpec v1.1** security standard.
+
+Features include:
+
+- Automatic generation of random secrets
+- `.env` files protected with `chmod 600`
+- No passwords stored in Git repositories
+- Network isolation between application and database layers
+- Least-privilege communication model
+- Shared reverse-proxy network architecture
+
+Example:
 
 ```
 
+Internet
+|
+Nginx Proxy Manager
+|
 dw_proxy_network
+|
+Application Container
+|
+Private Stack Network
+|
+Database Container
 
 ```
 
-This allows services to be securely exposed through Nginx Proxy Manager without unnecessarily exposing ports to the host.
+Database services are never exposed to the global proxy network.
 
 ---
 
-## 🧩 DW-AppSpec v1.0
+### 🔹 Production Stack Structure
 
-Every application follows a strict contract:
+All generated stacks are stored under:
 
-- Metadata-driven deployment.
-- Relative data persistence.
-- Environment isolation.
-- Secure secret injection.
-- Optional lifecycle hooks.
-- Zero changes to the core.
+```
+
+/opt/stacks/
+
+```
+
+Example:
+
+```
+
+/opt/stacks/
+└── nginx_proxy_manager/
+├── compose.yaml
+├── .env
+├── data/
+└── mysql/
+
+```
+
+This makes DockerWarrior fully compatible with Dockge and Portainer management interfaces.
 
 ---
 
-## 🌍 Multi-language Interface
+### 🔹 Internationalized Terminal Interface
 
-DockerWarrior includes a modular internationalization system:
+DockerWarrior includes a dynamic language system:
 
-- 🇺🇸 English
-- 🇪🇸 Español
+```
 
-New languages can be added simply by creating a new file inside:
-
-```bash
 lang/
+├── en.sh
+└── es.sh
+
 ```
 
----
-
-## 🛡️ Reliability and Safety
-
-Designed with production principles:
-
-- ✔ Idempotent installation
-- ✔ Fail-fast error handling
-- ✔ Modular architecture
-- ✔ Isolated application stacks
-- ✔ No hardcoded credentials
-- ✔ Clean separation between core and applications
+The installer automatically loads the selected language and renders all menus and messages dynamically.
 
 ---
 
-# 📂 Project Structure
+## 📦 Available Applications
 
-```text
-dockerwarrior/
-│
-├── install.sh              # Main orchestrator
-│
-├── apps/
-│   └── core/
-│       ├── docker.sh
-│       ├── dockge.sh
-│       └── portainer.sh
-│
-├── lib/
-│   ├── core/
-│   │   └── engine.sh       # DW deployment engine
-│   │
-│   └── ui/
-│       ├── dialogs.sh
-│       └── menu.sh
-│
-├── config/
-│   └── apps.conf           # Application catalog
-│
-├── lang/
-│   ├── en.sh
-│   └── es.sh
-│
-└── templates/
-    └── <app_id>/
-        ├── metadata.conf
-        ├── compose.yaml
-        └── env.template
-```
-
----
-
-# 📦 Current Application Catalog
+Current production-ready catalog:
 
 | Category | Application | Status |
-|----------|-------------|--------|
-| Reverse Proxy | Nginx Proxy Manager | ✅ Available |
-| Password Manager | Vaultwarden | 🚧 Phase 7 |
-| Cloud | Nextcloud | Planned |
-| Media | Jellyfin | Planned |
-| Photos | Immich | Planned |
-| VPN | WG-Easy | Planned |
-| DNS | AdGuard Home | Planned |
-| Business | Odoo Community | Planned |
-| Surveys | LimeSurvey | Planned |
-| Security | Fail2ban | Planned |
-| Mail | Docker Mail Server | Planned |
+|---|---|---|
+| Reverse Proxy | Nginx Proxy Manager | ✅ Supported |
+
+Planned applications:
+
+- Vaultwarden
+- Nextcloud
+- Immich
+- Jellyfin
+- WG-Easy
+- AdGuard Home
+- Odoo Community Edition
+- LimeSurvey
+- Mail Server Stack
+- Fail2Ban
 
 ---
 
-# ⚡ Quick Installation:
+## ⚡ One-Line Installation
+
+Deploy DockerWarrior with a single command:
 
 ```bash
 git clone https://github.com/wfhgdev/dockerwarrior.git && cd dockerwarrior && chmod +x install.sh && sudo ./install.sh
@@ -226,54 +176,150 @@ git clone https://github.com/wfhgdev/dockerwarrior.git && cd dockerwarrior && ch
 
 ---
 
-# 🗺️ Roadmap
+## 📋 Installation Workflow
 
-## ✅ Phase 6 — DockerWarrior Core v1.0
+DockerWarrior performs the following operations:
 
-- Stable core architecture
-- Deployment engine
-- DW-AppSpec v1.0
-- Internationalization
-- Interactive UI
-- Nginx Proxy Manager reference package
-
-## 🚧 Phase 7 — Application Ecosystem
-
-Next milestone:
-
-- Vaultwarden package
-- Expanded application catalog
+1. Validates operating system and architecture.
+2. Checks interactive terminal compatibility.
+3. Installs required dependencies.
+4. Installs Docker Engine and Docker Compose.
+5. Creates shared infrastructure resources.
+6. Deploys Dockge.
+7. Deploys Portainer CE.
+8. Displays the application catalog.
+9. Generates secure production-ready stacks.
 
 ---
 
-# 🤝 Contributing
-
-DockerWarrior was designed to be community friendly.
-
-Want to add a new service?
-
-You don't need to modify the core.
-
-Create a new package following DW-AppSpec:
+## 🏗️ Project Structure
 
 ```
 
-templates/my_app/
+dockerwarrior/
+│
+├── install.sh
+│
+├── apps/
+│ └── core/
+│ ├── dockge.sh
+│ └── portainer.sh
+│
+├── config/
+│ └── apps.conf
+│
+├── docs/
+│ └── DW-AppSpec-v1.1.md
+│
+├── lang/
+│ ├── en.sh
+│ └── es.sh
+│
+├── lib/
+│ ├── core/
+│ │ ├── engine.sh
+│ │ ├── logger.sh
+│ │ ├── system.sh
+│ │ └── utils.sh
+│ │
+│ └── ui/ 
+│ ├── dialogs.sh
+│ └── menu.sh
+│ 
+└── templates/
+└── nginx_proxy_manager/
+├── metadata.conf
+├── compose.yaml
+└── env.template
+
+---
+
+## 🧾 DockerWarrior Application Specification
+
+All applications must comply with the official standard:
+
+**DW-AppSpec v1.1**
+
+The specification defines:
+
+- Application package topology
+- Metadata contract
+- Compose security rules
+- Environment variable management
+- Secret generation system
+- Network isolation model
+- Pre/Post deployment hooks
+
+See:
+
+```
+docs/DW-AppSpec-v1.1.md
+```
+
+---
+
+## 🛡️ Security Philosophy
+
+DockerWarrior is designed around the concept:
+
+> The safest service is the one that only has access to what it strictly needs.
+
+Each stack uses layered networking:
+
+- Frontend containers can access the shared reverse-proxy network.
+- Databases and internal services remain isolated inside the private Docker network.
+- Secrets are generated only at deployment time.
+
+---
+
+## 🗺️ Roadmap
+
+### DockerWarrior Core v1.0
+- [x] Docker installation engine
+- [x] Docker Compose integration
+- [x] Dockge deployment
+- [x] Portainer deployment
+- [x] Generic deployment engine
+- [x] Template processing system
+- [x] Secret generation engine
+- [x] Internationalization
+- [x] DW-AppSpec v1.1 compliance
+
+### Phase 7 - Application Catalog Expansion
+- [ ] Vaultwarden
+- [ ] Nextcloud
+- [ ] Immich
+- [ ] Jellyfin
+- [ ] WG-Easy
+- [ ] AdGuard Home
+- [ ] Odoo Community Edition
+- [ ] LimeSurvey
+- [ ] Mail Server Stack
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+To add a new application, developers only need to create a new package inside:
 
 ```
 
-and let the deployment engine do the rest.
+templates/<new_application>/
+
+```
+
+The DockerWarrior core will automatically process it without modifying the main installer.
 
 ---
 
-# 📄 License
+## 📄 License
 
-MIT License
+This project is distributed under the MIT License.
 
 ---
 
-<div align="center">
-
-**⚔️ DockerWarrior — Deploy your self-hosted kingdom, one container at a time. ⚔️**
-
-</div>
+<p align="center">
+⚔️ DockerWarrior — Build your private cloud. Securely. Elegantly. Automatically.
+</p>
