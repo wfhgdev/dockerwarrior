@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Orquestador Principal de Instalación (Core v1.0.1)
+# DockerWarrior - Orquestador Principal de Instalación (Core v1.0.2)
 # ==============================================================================
 set -Eeuo pipefail
 
@@ -24,7 +24,7 @@ BASE_DIR=$(dirname "$(readlink -f "$0")")
 cd "${BASE_DIR}"
 
 # --- CONSTANTES GLOBALES DEL FRAMEWORK ---
-export DW_VERSION="v1.0.1"
+export DW_VERSION="v1.0.2"
 export DW_APPSPEC_VERSION="v1.1"
 export DW_CORE_DIR="/opt/dockerwarrior"
 export DW_STACKS_DIR="/opt/stacks"
