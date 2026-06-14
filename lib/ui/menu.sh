@@ -37,10 +37,22 @@ ui_select_apps() {
     
     # Clasificación estricta de salida del proceso interactivo
     if [[ "${whiptail_status}" -eq 0 ]]; then
+        
+        # feat(ui): Validación defensiva de IDs para blindar la frontera con el Core
+        local check_array
+        read -r -a check_array <<< "${choices}"
+        
+        for app_id in "${check_array[@]}"; do
+            if [[ ! "${app_id}" =~ ^[a-z0-9_-]+$ ]]; then
+                log_error "Identificador malicioso o inválido detectado en la capa UI: [${app_id}]" >&2
+                return 4 # Código de error por fallo de seguridad / sanitización
+            fi
+        done
+        
         echo "${choices}"
         return 0
     elif [[ "${whiptail_status}" -eq 1 || "${whiptail_status}" -eq 255 ]]; then
-        # Código 3 asignado para cancelaciones explícitas del usuario (Esc / Botón Cancelar)
+        # Código 3 asignado para cancelaciones explísitas del usuario (Esc / Botón Cancelar)
         return 3
     else
         # Código de error interno del componente de interfaz de usuario

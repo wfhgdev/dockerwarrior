@@ -14,10 +14,25 @@ ui_checklist() {
     local width=72
     local list_height=10
     
-    # Ejecución controlada redirigiendo canales de salida de datos estándar
-    whiptail --title "${title}" \
+    local choices
+    local exit_status=0
+    
+    # Capturar de forma segura la salida redirigiendo descriptores de archivo
+    choices=$(whiptail --title "${title}" \
              --checklist "${subtitle}" \
              "${height}" "${width}" "${list_height}" \
              "${options[@]}" \
-             3>&1 1>&2 2>&3
+             3>&1 1>&2 2>&3) || exit_status=$?
+             
+    # Si el usuario canceló o hubo error en el widget, propagar el código de salida inmediato
+    if [[ "${exit_status}" -ne 0 ]]; then
+        return "${exit_status}"
+    fi
+    
+    # fix(ui): Sanatizar la salida eliminando comillas dobles inyectadas por Whiptail
+    choices="${choices//\"/}"
+    
+    # Retornar la cadena normalizada limpia (ej: "app1 app2 app3")
+    echo "${choices}"
+    return 0
 }
