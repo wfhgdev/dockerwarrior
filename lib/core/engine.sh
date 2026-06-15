@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# DockerWarrior Core - Motor de Plantillas y Despliegue Dinámico (v1.3.1-RC1)
+# DockerWarrior Core - Motor de Plantillas y Despliegue Dinámico (v1.3.1-RC2)
 # Branch: feature/engine-v1.3-hardening
 # =============================================================================
 
@@ -45,18 +45,25 @@ resolve_placeholder() {
         SECRET)
             local length="${arg:-32}"
             
-            # BLINDAJE C-1: Comprobar disponibilidad de dependencias binarias
+            # CORRECCIÓN CRÍTICA 2.1: Comprobar disponibilidad de dependencias binarias
             if ! command -v openssl &>/dev/null; then
                 _engine_log_error "${LOG_ENGINE_ERR_OPENSSL_MISSING}"
                 return 1
             fi
 
-            # BLINDAJE C-2: Generación aislada en subshell sin fugas de tubería
+            # CORRECCIÓN CRÍTICA 2.2: Captura del exit code real de openssl aislando la tubería
             local secret
-            secret=$(openssl rand -base64 128 2>/dev/null | tr -dc 'a-zA-Z0-9' | head -c "${length}")
+            local random_data
+            if ! random_data=$(openssl rand -base64 128 2>/dev/null); then
+                _engine_log_error "${LOG_ENGINE_ERR_SECRET}"
+                return 1
+            fi
 
-            # BLINDAJE C-3: Validación explícita de nulidad y longitud exacta
-            if [[ -z "${secret}" || ${#secret} -ne ${length} ]]; then
+            # Procesar el flujo de datos limpio en memoria sin riesgo de fallos silenciosos
+            secret=$(printf "%s" "${random_data}" | tr -dc 'A-Za-z0-9' | head -c "${length}")
+
+            # Validación explícita de longitud exacta requerida
+            if [[ ${#secret} -ne ${length} ]]; then
                 _engine_log_error "${LOG_ENGINE_ERR_SECRET}"
                 return 1
             fi
@@ -67,7 +74,15 @@ resolve_placeholder() {
             cat /etc/timezone 2>/dev/null || printf "UTC"
             ;;
         BASE_DOMAIN)
-            printf "%s" "${GLOBAL_BASE_DOMAIN:-${BASE_DOMAIN:-micasa.duckdns.org}}"
+            # CORRECCIÓN CRÍTICA 1: Eliminación radical de fallbacks hardcodeados
+            if [[ -n "${GLOBAL_BASE_DOMAIN:-}" ]]; then
+                printf "%s" "${GLOBAL_BASE_DOMAIN}"
+            elif [[ -n "${BASE_DOMAIN:-}" ]]; then
+                printf "%s" "${BASE_DOMAIN}"
+            else
+                _engine_log_error "${LOG_ENGINE_ERR_BASE_DOMAIN}"
+                return 1
+            fi
             ;;
         GLOBAL)
             local var_name="GLOBAL_${arg}"
@@ -86,6 +101,12 @@ process_template() {
     local template_file="${1}"
     local output_file="${2}"
     local tmp_output="${output_file}.tmp"
+
+    # CORRECCIÓN MEDIO 5: Validación de existencia del archivo origen de la plantilla
+    if [[ ! -f "${template_file}" ]]; then
+        _engine_log_error "$(printf "${LOG_ENGINE_ERR_TEMPLATE_NOT_FOUND}" "${template_file}")"
+        return 1
+    fi
 
     # BLOQUE B-1: Inicialización atómica mediante truncado directo limpia la basura previa
     if ! : > "${tmp_output}"; then
@@ -168,19 +189,24 @@ deploy_app() {
         return 1
     fi
 
-    # 3. Fail-Fast: Validar que el directorio destino no se encuentre bloqueado por un archivo regular
-    if [[ -f "${target_dir}" ]]; then
-        _engine_log_error "$(printf "${LOG_ENGINE_ERR_TARGET_IS_FILE}" "${target_dir}")"
+    # 3. CORRECCIÓN CRÍTICA 3: Fail-Fast integral de colisiones en el target (sockets, symlinks, archivos, etc)
+    if [[ -e "${target_dir}" && ! -d "${target_dir}" ]]; then
+        _engine_log_error "$(printf "${LOG_ENGINE_ERR_TARGET_INVALID}" "${target_dir}")"
         return 1
     fi
 
-    # 4. Crear de forma limpia el directorio destino (G-4: Preservar permisos si ya existía)
+    # 4. Crear el directorio de forma limpia si no existe
     if [[ ! -d "${target_dir}" ]]; then
         if ! mkdir -p "${target_dir}"; then
             _engine_log_error "$(printf "${LOG_ENGINE_ERR_MKDIR_FAIL}" "${target_dir}")"
             return 1
         fi
-        chmod 750 "${target_dir}" 2>/dev/null
+    fi
+
+    # CORRECCIÓN MEDIO 4: Aplicación y validación explícita del estado de permisos del directorio del stack
+    if ! chmod 750 "${target_dir}" 2>/dev/null; then
+        _engine_log_error "$(printf "${LOG_ENGINE_ERR_DIR_PERMISSION}" "${target_dir}")"
+        return 1
     fi
 
     # 5. Validar privilegios reales de escritura sobre el espacio del stack
