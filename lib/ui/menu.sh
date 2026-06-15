@@ -10,28 +10,34 @@ ui_select_apps() {
         return 2
     fi
 
-    # Mapeo dinámico de opciones leyendo la especificación del catálogo
-    local options=()
+# Mapeo dinámico de opciones leyendo la especificación del catálogo
+local options=()
+local line_number=0
 
-    while IFS='|' read -r app_id app_name category || [[ -n "${app_id}" ]]; do
+while IFS='|' read -r app_id app_name category extra || [[ -n "${app_id}" ]]; do
+
+    ((line_number++))
 
     # Omitir líneas en blanco o comentarios documentales
     [[ -z "${app_id}" || "${app_id}" =~ ^# ]] && continue
 
-    # Validación temprana del identificador de aplicación
+    # Validar que la estructura tenga exactamente 3 campos:
+    # id_aplicacion|Nombre Comercial|Categoria
+    if [[ -n "${extra}" || -z "${app_name}" || -z "${category}" ]]; then
+        log_warn "Entrada de catálogo mal formada descartada en línea ${line_number}"
+        continue
+    fi
+
+    # Validación estricta del identificador de aplicación
     if [[ ! "${app_id}" =~ ^[a-z0-9_-]+$ ]]; then
         log_warn "Entrada inválida descartada del catálogo: ${app_id}"
         continue
     fi
 
     # Inyectar estructura de argumentos requerida por Whiptail
-    options+=(
-        "${app_id}"
-        "${app_name} [${category}]"
-        "OFF"
-    )
+    options+=("${app_id}" "${app_name} [${category}]" "OFF")
 
-    done < "${apps_file}"
+done < "${apps_file}"
 
     if [[ ${#options[@]} -eq 0 ]]; then
         log_error "El catálogo de aplicaciones en config/apps.conf se encuentra vacío." >&2
