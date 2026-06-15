@@ -30,9 +30,9 @@ ui_select_apps() {
     local whiptail_status=0
     
     # Invocación pasando variables de idioma protegidas contra diccionarios incompletos
-    local menu_title="${MSG_MENU_TITLE}"
     local menu_title="${MSG_MENU_TITLE:-DockerWarrior - Selección de Aplicaciones}"
-    
+    local menu_subtitle="${MSG_MENU_SUBTITLE:-Seleccione las aplicaciones adicionales que desea preparar:}"
+
     choices=$(ui_checklist "${menu_title}" "${menu_subtitle}" "${options[@]}") || whiptail_status=$?
     
     # Clasificación estricta de salida del proceso interactivo
