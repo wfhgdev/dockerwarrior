@@ -57,6 +57,7 @@ fi
 # --- CARGA DE SUBSISTEMAS DEL CORE ---
 if [[ -f "lib/core/logger.sh" ]]; then
     source "lib/core/logger.sh"
+    init_log_file
 else
     echo "[ERR] lib/core/logger.sh ausente." >&2
     exit 1
