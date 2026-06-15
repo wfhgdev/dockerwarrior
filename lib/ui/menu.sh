@@ -3,19 +3,9 @@
 # DockerWarrior UI - Menú de Selección de Aplicaciones Dinámicas
 # ==============================================================================
 
-# PRUEBA SOLICITADA POR IA###########
-#log_info "DEBUG: Entrando en ui_select_apps()"
-# FIN PRUEBA SOLICITADA POR IA#############
-
 ui_select_apps() {
     local apps_file="${BASE_DIR}/config/apps.conf"
-    # PRUEBA SOLICITADA POR IA###########
-    #log_info "DEBUG: Leyendo catálogo ${apps_file}"
-    # FIN PRUEBA SOLICITADA POR IA#############
     if [[ ! -f "${apps_file}" ]]; then
-        # PRUEBA SOLICITADA POR IA###########
-        #log_info "DEBUG: Aplicaciones encontradas: ${#options[@]}"
-        # FIN PRUEBA SOLICITADA POR IA#############
         log_error "Archivo de configuración no encontrado: ${apps_file}" >&2
         return 2
     fi
@@ -41,10 +31,6 @@ ui_select_apps() {
     # Invocación pasando variables de idioma protegidas contra diccionarios incompletos
     local menu_title="${MSG_MENU_TITLE:-DockerWarrior - Selección de Aplicaciones}"
     local menu_subtitle="${MSG_MENU_SUBTITLE:-Seleccione las aplicaciones adicionales que desea preparar:}"
-
-    # PRUEBA SOLICITADA POR IA###########
-    #log_info "DEBUG: Lanzando interfaz Whiptail..."
-    # FIN PRUEBA SOLICITADA POR IA#############
 
     choices=$(ui_checklist "${menu_title}" "${menu_subtitle}" "${options[@]}") || whiptail_status=$?
     

@@ -4,7 +4,6 @@
 # ==============================================================================
 
 ui_checklist() {
-    #log_info "DEBUG: Entrando en ui_checklist()" #LOG DE PRUEBA IA
     if ! command -v whiptail >/dev/null 2>&1; then
         log_error "Whiptail no está instalado o no se encuentra disponible."
         return 2
@@ -21,7 +20,6 @@ ui_checklist() {
     
     local choices
     local exit_status=0
-    #log_info "DEBUG: Ejecutando comando Whiptail" #LOG DE PRUEBA IA
     # Capturar de forma segura la salida redirigiendo descriptores de archivo
     choices=$(whiptail --title "${title}" \
              --checklist "${subtitle}" \
