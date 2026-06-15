@@ -158,7 +158,7 @@ main() {
         log_success "Docker Engine detectado en el sistema host."
         report_add_core_service "Docker Engine" "✓ (${TXT_REPORT_STATUS_RUN:-En ejecución})"
     else
-        log_warn "Docker Engine no detectado. Procediendo con el aprovisionamiento automatizado..."
+    log_warn "Docker Engine no detectado. Procediendo con el aprovisionamiento automatizado..."
 
     if install_docker_engine; then
         log_success "Docker Engine instalado correctamente."
