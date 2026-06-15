@@ -54,6 +54,19 @@ if [[ -f "lib/core/system.sh" ]]; then source "lib/core/system.sh"; else echo "[
 if [[ -f "lib/docker/install.sh" ]]; then source "lib/docker/install.sh"; else echo "[ERR] lib/docker/install.sh ausente." >&2; exit 1; fi
 if [[ -f "lib/core/engine.sh" ]]; then source "lib/core/engine.sh"; else echo "[ERR] lib/core/engine.sh ausente." >&2; exit 1; fi
 if [[ -f "lib/core/report.sh" ]]; then source "lib/core/report.sh"; else echo "[ERR] lib/core/report.sh ausente." >&2; exit 1; fi
+if [[ -f "apps/core/dockge.sh" ]]; then
+    source "apps/core/dockge.sh"
+else
+    echo "[ERR] apps/core/dockge.sh ausente." >&2
+    exit 1
+fi
+
+if [[ -f "apps/core/portainer.sh" ]]; then
+    source "apps/core/portainer.sh"
+else
+    echo "[ERR] apps/core/portainer.sh ausente." >&2
+    exit 1
+fi
 
 # --- VERIFICACIONES PREVIAS DE SEGURIDAD ---
 check_root_privileges() {
@@ -120,12 +133,18 @@ fi
     host_ip=$(hostname -I | awk '{print $1}' || echo "127.0.0.1")
 
     # Aprovisionamiento del Panel 1: Dockge
-    # core_deploy_panel "dockge" -> Ejecución real encapsulada en engine.sh
-    report_add_panel "Dockge" "http://${host_ip}:5001"
+    if install_dockge; then
+       report_add_panel "Dockge" "http://${host_ip}:5001"
+    else
+       log_error "No fue posible desplegar Dockge."
+    fi
 
     # Aprovisionamiento del Panel 2: Portainer CE
-    # core_deploy_panel "portainer" -> Ejecución real encapsulada en engine.sh
-    report_add_panel "Portainer CE" "https://${host_ip}:9443"
+    if install_portainer; then
+       report_add_panel "Portainer CE" "https://${host_ip}:9443"
+    else
+       log_error "No fue posible desplegar Portainer CE."
+    fi
 
     # 4. Procesamiento Dinámico del Catálogo de Aplicaciones
     log_info "Fase 4: Procesando cola de aplicaciones del catálogo..."
