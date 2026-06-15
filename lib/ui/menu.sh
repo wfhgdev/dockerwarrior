@@ -31,7 +31,7 @@ ui_select_apps() {
     
     # Invocación pasando variables de idioma protegidas contra diccionarios incompletos
     local menu_title="${MSG_MENU_TITLE}"
-    local menu_subtitle="${MSG_MENU_SUBTITLE:-Seleccione las aplicaciones adicionales que desea preparar:}"
+    local menu_title="${MSG_MENU_TITLE:-DockerWarrior - Selección de Aplicaciones}"
     
     choices=$(ui_checklist "${menu_title}" "${menu_subtitle}" "${options[@]}") || whiptail_status=$?
     
@@ -52,7 +52,7 @@ ui_select_apps() {
         echo "${choices}"
         return 0
     elif [[ "${whiptail_status}" -eq 1 || "${whiptail_status}" -eq 255 ]]; then
-        # Código 3 asignado para cancelaciones explísitas del usuario (Esc / Botón Cancelar)
+        # Código 3 asignado para cancelaciones explícitas del usuario
         return 3
     else
         # Código de error interno del componente de interfaz de usuario

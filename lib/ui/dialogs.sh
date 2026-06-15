@@ -4,6 +4,10 @@
 # ==============================================================================
 
 ui_checklist() {
+    if ! command -v whiptail >/dev/null 2>&1; then
+        log_error "Whiptail no está instalado o no se encuentra disponible."
+        return 2
+    fi
     local title="${1}"
     local subtitle="${2}"
     shift 2
@@ -29,7 +33,7 @@ ui_checklist() {
         return "${exit_status}"
     fi
     
-    # fix(ui): Sanatizar la salida eliminando comillas dobles inyectadas por Whiptail
+    # fix(ui): Sanitizar la salida eliminando comillas dobles generadas por Whiptail
     choices="${choices//\"/}"
     
     # Retornar la cadena normalizada limpia (ej: "app1 app2 app3")
