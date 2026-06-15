@@ -14,7 +14,7 @@ ui_select_apps() {
 local options=()
 local line_number=0
 
-while IFS='|' read -r app_id app_name category extra || [[ -n "${app_id}" ]]; do
+    while IFS='|' read -r app_id app_name category extra || [[ -n "${app_id}" ]]; do
 
     ((line_number++))
 
@@ -32,7 +32,7 @@ while IFS='|' read -r app_id app_name category extra || [[ -n "${app_id}" ]]; do
 
     options+=("${app_id}" "${app_name} [${category}]" "OFF")
 
-done < "${apps_file}"
+    done < "${apps_file}"
 
     if [[ ${#options[@]} -eq 0 ]]; then
         log_error "El catálogo de aplicaciones en config/apps.conf se encuentra vacío." >&2
