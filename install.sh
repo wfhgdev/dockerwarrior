@@ -147,6 +147,9 @@ main() {
     # 1. Inicializar la estructura de buffers en memoria del Report System
     report_init
 
+    # Garantizar dependencias del entorno de instalación
+    validate_required_packages
+
     # 2. Validación e Instalación de Infraestructura Base
     log_info "Fase 1: Verificando dependencias del sistema operativo..."
     
@@ -207,13 +210,21 @@ fi
     fi
 
     # 4. Procesamiento Dinámico del Catálogo de Aplicaciones
-    log_info "Fase 4: Selección de aplicaciones adicionales..."
+log_info "Fase 4: Selección de aplicaciones adicionales..."
 
-    local selected_apps=""
-    local ui_status=0
+log_info "Comprobando disponibilidad de terminal interactiva..."
 
-    # Mostrar interfaz Whiptail para selección de aplicaciones
-    selected_apps=$(ui_select_apps) || ui_status=$?
+if [[ ! -t 0 || ! -t 1 ]]; then
+    log_error "No se detecta una terminal interactiva válida para Whiptail."
+    exit 1
+fi
+
+log_success "Terminal interactiva detectada. Iniciando interfaz de selección..."
+
+local selected_apps=""
+local ui_status=0
+
+selected_apps=$(ui_select_apps) || ui_status=$?
 
     case "${ui_status}" in
         0)
