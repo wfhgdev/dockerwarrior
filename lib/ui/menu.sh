@@ -12,12 +12,25 @@ ui_select_apps() {
 
     # Mapeo dinámico de opciones leyendo la especificación del catálogo
     local options=()
+
     while IFS='|' read -r app_id app_name category || [[ -n "${app_id}" ]]; do
-        # Omitir líneas en blanco o comentarios documentales
-        [[ -z "${app_id}" || "${app_id}" =~ ^# ]] && continue
-        
-        # Inyectar estructura de argumentos requerida por whiptail
-        options+=("${app_id}" "${app_name} [${category}]" "OFF")
+
+    # Omitir líneas en blanco o comentarios documentales
+    [[ -z "${app_id}" || "${app_id}" =~ ^# ]] && continue
+
+    # Validación temprana del identificador de aplicación
+    if [[ ! "${app_id}" =~ ^[a-z0-9_-]+$ ]]; then
+        log_warn "Entrada inválida descartada del catálogo: ${app_id}"
+        continue
+    fi
+
+    # Inyectar estructura de argumentos requerida por Whiptail
+    options+=(
+        "${app_id}"
+        "${app_name} [${category}]"
+        "OFF"
+    )
+
     done < "${apps_file}"
 
     if [[ ${#options[@]} -eq 0 ]]; then
