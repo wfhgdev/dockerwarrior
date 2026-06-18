@@ -72,3 +72,4 @@ LOG_ENGINE_ERR_TMP_PERMISSION="[ERR-SEC] Could not secure temporary file with re
 LOG_ENGINE_ERR_ENV_WRITE="[ERR-FS] Storage error or disk failure while writing to temporal space .env.tmp"
 LOG_ENGINE_ERR_ENV_MOVE="[ERR-FS] File substitution failed. Could not move .env.tmp atomically into production"
 LOG_ENGINE_ERR_ENV_PERMISSION="[ERR-SEC] Error re-validating strict 600 permissions over persistent .env"
+MSG_MENU_SUBTITLE="Select the additional applications you want to prepare:"

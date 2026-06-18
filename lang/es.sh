@@ -72,3 +72,4 @@ LOG_ENGINE_ERR_TMP_PERMISSION="[ERR-SEC] No se pudo asegurar el entorno temporal
 LOG_ENGINE_ERR_ENV_WRITE="[ERR-FS] Error de almacenamiento o fallo de disco al escribir en el espacio temporal .env.tmp"
 LOG_ENGINE_ERR_ENV_MOVE="[ERR-FS] Error al sustituir el archivo. No se pudo mover el .env.tmp de forma atómica a producción"
 LOG_ENGINE_ERR_ENV_PERMISSION="[ERR-SEC] Error al revalidar la persistencia de permisos estricta 600 sobre .env"
+MSG_MENU_SUBTITLE="Seleccione las aplicaciones adicionales que desea preparar:"
