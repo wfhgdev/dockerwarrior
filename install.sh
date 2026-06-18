@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DockerWarrior - Orquestador Principal de Instalación (Core v1.3.1-RC2)
+# DockerWarrior - Orquestador Principal de Instalación (Core v1.0.3)
 # ==============================================================================
 set -Eeuo pipefail
 
-# --- 0. CONTROL DE PRIVILEGIOS NATIVO (PRE-CHECKS ABSOLUTO) ---
-if [[ "${EUID}" -ne 0 ]]; then
-    echo -e "\e[31m[ERROR]\e[0m Este script debe ejecutarse con privilegios de root (sudo)." >&2
-    exit 1
-fi
-
-# --- 1. CONTROL DE EXCEPCIONES GLOBAL ---
+# --- CONTROL DE EXCEPCIONES GLOBAL ---
 failure_handler() {
     local parent_lineno="${1}"
     local message="${2:-"Error desconocido"}"
@@ -27,198 +21,304 @@ failure_handler() {
 
 trap 'failure_handler ${LINENO} "$BASH_COMMAND" $?' ERR
 
-# --- 2. CONFIGURACIÓN DEL ENTORNO RAÍZ Y ENRUTAMIENTO ---
+
+# --- CONFIGURACIÓN DEL ENTORNO RAÍZ ---
 export BASE_DIR
 BASE_DIR=$(dirname "$(readlink -f "$0")")
 cd "${BASE_DIR}"
 
-# --- 3. CONSTANTES GLOBALES DEL FRAMEWORK ---
-export DW_VERSION="v1.3.1-RC2"
+
+# --- CONSTANTES GLOBALES DEL FRAMEWORK ---
+export DW_VERSION="v1.0.3"
 export DW_APPSPEC_VERSION="v1.1"
 export DW_CORE_DIR="/opt/dockerwarrior"
 export DW_STACKS_DIR="/opt/stacks"
 
-# --- 4. CARGA DE LIBRERÍAS, CONFIGURACIONES Y COMPONENTES CORE ---
-source "lib/core/logger.sh"
-source "lib/core/system.sh"
-source "lib/core/engine.sh"
-source "lib/docker/network.sh"
-source "lib/docker/install.sh"
-source "lib/core/report.sh"
-source "lib/ui/dialogs.sh"
-source "lib/ui/menu.sh"
 
-# Ingesta opcional de configuraciones globales por defecto si existen
-if [[ -f "config/defaults.conf" ]]; then
-    # shellcheck disable=SC1091
-    source "config/defaults.conf"
-fi
+# --- INTERNACIONALIZACIÓN (i18n) ---
+export LANG_SELECTED="${LANG_SELECTED:-es}"
 
-# Definición unificada de la red (Prioriza config/defaults.conf -> fallback seguro)
-export DW_NETWORK="${DW_NETWORK:-dw-routing}"
-
-# Inicializar de forma segura el archivo de log ahora que la firma de root está validada
-init_log_file
-
-# --- [MEJORA DE FLUJO] VALIDACIÓN TEMPRANA DEL HOST ---
-# Validamos el entorno antes de intentar cualquier instalación por APT (como whiptail)
-validate_os
-validate_architecture
-
-# --- 5. GESTIÓN SEGURA DE INTERNACIONALIZACIÓN (i18n) ---
-export LANG_SELECTED="${LANG_SELECTED:-}"
-
-if [[ -z "${LANG_SELECTED}" ]]; then
-    if [[ -t 0 ]]; then
-        # Verificar y auto-aprovisionar whiptail de forma reactiva si falta en el host
-        if ! command -v whiptail &>/dev/null; then
-            log_info "Componente de interfaz gráfica 'whiptail' ausente. Instalando dependencia..." 
-            apt-get update -qq && apt-get install -y whiptail >/dev/null 2>&1 || true
-        fi
-
-        # Despliegue balanceado del menú interactivo o desvío a interfaz nativa por consola
-        if command -v whiptail &>/dev/null; then
-            LANG_CHOICE=$(whiptail --title "DockerWarrior Core Engine" \
-                --menu "Seleccione su idioma / Select your language:" 11 55 2 \
-                "1" "Español (es)" \
-                "2" "English (en)" \
-                3>&1 1>&2 2>&3) || LANG_CHOICE="1"
-            
-            if [[ "${LANG_CHOICE}" == "2" ]]; then
-                LANG_SELECTED="en"
-            else
-                LANG_SELECTED="es"
-            fi
-        else
-            # Fallback robusto en texto plano por si los repositorios apt estuvieran bloqueados
-            echo -e "\n--- DockerWarrior Idioma / Language ---"
-            echo "1) Español (es)"
-            echo "2) English (en)"
-            read -rp "Seleccione una opción [1]: " lang_raw
-            [[ "${lang_raw}" == "2" ]] && LANG_SELECTED="en" || LANG_SELECTED="es"
-        fi
-    else
-        # Modo desatendido / TTY aislado: Auto-detección por variables de entorno local
-        if [[ -n "${LANG:-}" ]]; then
-            LANG_SELECTED="${LANG%%_*}"
-        fi
-        if [[ "${LANG_SELECTED}" != "es" && "${LANG_SELECTED}" != "en" ]]; then
-            LANG_SELECTED="es"
-        fi
-    fi
-fi
-
-# Cargar de forma segura los diccionarios idiomáticos compilados
 if [[ -f "lang/${LANG_SELECTED}.sh" ]]; then
     # shellcheck disable=SC1091
     source "lang/${LANG_SELECTED}.sh"
 else
-    # Fallback interno de contingencia lingüística
-    export MSG_MENU_TITLE="DockerWarrior - Catálogo de Aplicaciones"
-    export MSG_MENU_TEXT="Utilice la BARRA ESPACIADORA para marcar. Presione ENTER para confirmar."
+    echo "[ERR] Archivo de idioma lang/${LANG_SELECTED}.sh no encontrado. Fallback a inglés." >&2
+
+    if [[ -f "lang/en.sh" ]]; then
+        # shellcheck disable=SC1091
+        source "lang/en.sh"
+    else
+        echo "[ERR] Idioma base ausente. Abortando instalación." >&2
+        exit 1
+    fi
 fi
 
-# --- 6. FLUJO PRINCIPAL DE DESPLIEGUE (MAIN EXECUTION) ---
+
+# --- CARGA DE SUBSISTEMAS DEL CORE ---
+if [[ -f "lib/core/logger.sh" ]]; then
+    source "lib/core/logger.sh"
+    init_log_file
+else
+    echo "[ERR] lib/core/logger.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "lib/core/system.sh" ]]; then
+    source "lib/core/system.sh"
+else
+    echo "[ERR] lib/core/system.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "lib/docker/install.sh" ]]; then
+    source "lib/docker/install.sh"
+else
+    echo "[ERR] lib/docker/install.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "lib/core/engine.sh" ]]; then
+    source "lib/core/engine.sh"
+else
+    echo "[ERR] lib/core/engine.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "lib/core/report.sh" ]]; then
+    source "lib/core/report.sh"
+else
+    echo "[ERR] lib/core/report.sh ausente." >&2
+    exit 1
+fi
+
+
+# --- NUEVA CAPA DE INTERFAZ DE USUARIO ---
+if [[ -f "lib/ui/dialogs.sh" ]]; then
+    source "lib/ui/dialogs.sh"
+else
+    echo "[ERR] lib/ui/dialogs.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "lib/ui/menu.sh" ]]; then
+    source "lib/ui/menu.sh"
+else
+    echo "[ERR] lib/ui/menu.sh ausente." >&2
+    exit 1
+fi
+
+
+# --- APLICACIONES CORE ---
+if [[ -f "apps/core/dockge.sh" ]]; then
+    source "apps/core/dockge.sh"
+else
+    echo "[ERR] apps/core/dockge.sh ausente." >&2
+    exit 1
+fi
+
+
+if [[ -f "apps/core/portainer.sh" ]]; then
+    source "apps/core/portainer.sh"
+else
+    echo "[ERR] apps/core/portainer.sh ausente." >&2
+    exit 1
+fi
+
+# --- VERIFICACIONES PREVIAS DE SEGURIDAD ---
+check_root_privileges() {
+    if [[ "${EUID}" -ne 0 ]]; then
+        log_error "DockerWarrior requiere privilegios de root para gestionar la infraestructura. Ejecuta con sudo."
+        exit 1
+    fi
+}
+
+# --- FLUJO PRINCIPAL DE ORQUESTACIÓN ---
 main() {
+    check_root_privileges
+    
     log_info "========================================================="
-    log_info " Iniciando Despliegue de Infraestructura DockerWarrior"
+    log_info " Iniciando Despliegue de Infraestructura DockerWarrior "
     log_info "========================================================="
+    
+    # 1. Inicializar la estructura de buffers en memoria del Report System
+    report_init
 
-    # Fase 1: Aprovisionamiento del motor de contenedores en caliente
-    log_info "Fase 1: Verificando estado del motor de contenedores..."
-    if ! command -v docker &>/dev/null || ! docker compose version &>/dev/null; then
-        log_warn "Docker Engine o Docker Compose no detectados. Iniciando aprovisionamiento..."
-        install_docker_engine
+    # Garantizar dependencias del entorno de instalación
+    validate_required_packages
+
+    # 2. Validación e Instalación de Infraestructura Base
+    log_info "Fase 1: Verificando dependencias del sistema operativo..."
+    
+    # Verificación en caliente de Docker Engine
+    if command -v docker &>/dev/null; then
+        log_success "Docker Engine detectado en el sistema host."
+        report_add_core_service "Docker Engine" "✓ (${TXT_REPORT_STATUS_RUN:-En ejecución})"
     else
-        log_success "Docker Engine instalado correctamente: $(docker --version)"
+    log_warn "Docker Engine no detectado. Procediendo con el aprovisionamiento automatizado..."
+
+    if install_docker_engine; then
+        log_success "Docker Engine instalado correctamente."
+        report_add_core_service "Docker Engine" "✓ (Instalado)"
+    else
+        log_error "La instalación automática de Docker Engine ha fallado."
+        exit 1
+    fi
+fi
+
+    # Verificación de Docker Compose V2
+    if docker compose version &>/dev/null; then
         log_success "Docker Compose V2 detectado y operativo."
+        report_add_core_service "Docker Compose" "✓ (V2 Activo)"
+    else
+        log_error "Docker Compose V2 no disponible tras el aprovisionamiento. Abortando."
+        exit 1
     fi
 
-    # Fase 2: Construcción de redes de aislamiento perimetral
+    # Asegurar la existencia de la red perimetral global aislada
     log_info "Fase 2: Configurando redes globales segmentadas..."
-    if command -v configure_dw_network &>/dev/null; then
-        configure_dw_network
+    if docker network inspect dw_proxy_network &>/dev/null; then
+        log_success "Red global 'dw_proxy_network' detectada. Reutilizando infraestructura."
+        report_add_core_service "dw_proxy_network" "✓ (Reutilizada)"
     else
-        # Red de contingencia utilizando la variable unificada dinámica
-        if ! docker network inspect "${DW_NETWORK}" &>/dev/null; then
-            log_info "Creando red global aislada '${DW_NETWORK}'..."
-            docker network create --driver bridge --label project=dockerwarrior "${DW_NETWORK}" >/dev/null
-            log_success "Red '${DW_NETWORK}' creada con éxito."
-        fi
+        log_info "Creando red global aislada 'dw_proxy_network'..."
+        docker network create --driver bridge dw_proxy_network >/dev/null
+        log_success "Red 'dw_proxy_network' creada con éxito."
+        report_add_core_service "dw_proxy_network" "✓ (Creada nueva)"
     fi
 
-    # Fase 3: Despliegue de los paneles administrativos del Núcleo (Core Stacks)
+    # 3. Despliegue de Paneles de Control Centralizados
     log_info "Fase 3: Desplegando paneles de administración core..."
-    
-    # Orquestador Visual Dockge
-    if command -v install_dockge &>/dev/null; then
-        install_dockge
-    fi
+    local host_ip
+    host_ip=$(hostname -I | awk '{print $1}' || echo "127.0.0.1")
 
-    # Administrador de Contenedores Portainer CE
-    if command -v install_portainer &>/dev/null; then
-        install_portainer
-    fi
-
-    # Fase 4: Catálogo y selección dinámica de Microservicios adicionales
-    log_info "Fase 4: Selección de aplicaciones adicionales..."
-    local selected_apps=""
-
-    if [[ -t 0 ]]; then
-        # Entorno Interactivo: Renderizar checklist Whiptail
-        if command -v ui_select_apps &>/dev/null; then
-            selected_apps=$(ui_select_apps) || selected_apps=""
-        fi
+    # Aprovisionamiento del Panel 1: Dockge
+    if install_dockge; then
+       report_add_panel "Dockge" "http://${host_ip}:5001"
     else
-        # Entorno Desatendido / TTY No disponible
-        log_warn "Terminal no interactiva detectada. Omitiendo interfaz visual de catálogo de forma automatizada."
+       log_error "No fue posible desplegar Dockge."
     fi
 
-    # Despliegue iterativo a través del Motor Declarativo Estándar
+    # Aprovisionamiento del Panel 2: Portainer CE
+    if install_portainer; then
+       report_add_panel "Portainer CE" "https://${host_ip}:9443"
+    else
+       log_error "No fue posible desplegar Portainer CE."
+    fi
+
+    # 4. Procesamiento Dinámico del Catálogo de Aplicaciones
+log_info "Fase 4: Selección de aplicaciones adicionales..."
+
+log_info "Comprobando disponibilidad de terminal interactiva..."
+
+if [[ ! -t 0 || ! -t 1 ]]; then
+    log_error "No se detecta una terminal interactiva válida para Whiptail."
+    exit 1
+fi
+
+log_success "Terminal interactiva detectada. Iniciando interfaz de selección..."
+
+local selected_apps=""
+local ui_status=0
+
+selected_apps=$(ui_select_apps) || ui_status=$?
+
+    case "${ui_status}" in
+        0)
+            log_info "Selección de aplicaciones completada correctamente."
+            ;;
+
+        3)
+            log_warn "El usuario canceló la selección de aplicaciones. Continuando con la instalación base."
+            selected_apps=""
+            ;;
+
+        *)
+            log_error "Error en la interfaz de selección de aplicaciones."
+            exit 1
+            ;;
+    esac
+
+
+    # Construir lista de aplicaciones a desplegar
+    local apps_to_deploy=()
+
     if [[ -n "${selected_apps}" ]]; then
-        for app_id in ${selected_apps}; do
-            log_info "Procesando e instalando servicio del catálogo: ${app_id}"
-            if command -v deploy_app &>/dev/null; then
-                if deploy_app "${app_id}"; then
-                    log_success "Módulo '${app_id}' desplegado e inyectado con éxito."
-                else
-                    log_error "Fallo durante el despliegue del stack: ${app_id}"
-                fi
-            fi
-        done
-    else
+        read -r -a apps_to_deploy <<< "${selected_apps}"
+    fi
+
+
+    # Verificación de seguridad: evitar despliegues con identificadores inválidos
+    for app_id in "${apps_to_deploy[@]}"; do
+        if [[ ! "${app_id}" =~ ^[a-z0-9_-]+$ ]]; then
+            log_error "Identificador de aplicación inválido detectado: ${app_id}"
+            exit 1
+        fi
+    done
+
+
+    # Procesamiento del catálogo seleccionado
+    local catalog_file="config/apps.conf"
+
+    if [[ ${#apps_to_deploy[@]} -eq 0 ]]; then
         log_info "No se seleccionaron aplicaciones adicionales para desplegar."
-    fi
+    else
 
-    # Fase 5: Consolidación, Auditoría e Ingesta de Inventario de Sistemas
-    log_info "Fase 5: Consolidando métricas y guardando inventario de infraestructura..."
-    
-    # Inicializar buffers de memoria del reporte técnico
-    if command -v report_init &>/dev/null; then
-        report_init
-        
-        # Mapear de forma agnóstica el estado real de los contenedores levantados
-        [[ -f "/opt/dockge/compose.yaml" ]] && report_add_core_panel "Dockge" "http://$(hostname -I | awk '{print $1}'):5001" "/opt/dockge"
-        docker ps -q -f name=^/portainer$ &>/dev/null && report_add_core_panel "Portainer CE" "https://$(hostname -I | awk '{print $1}'):9443" "Docker Volume"
-    fi
+        log_info "Iniciando despliegue de aplicaciones seleccionadas..."
 
-    # Inyección dinámica de las recomendaciones operativas i18n
+        for app_id in "${apps_to_deploy[@]}"; do
+
+            if [[ -d "templates/${app_id}" ]]; then
+
+                log_info "Procesando despliegue e inyección de entorno para: ${app_id}"
+
+                if core_deploy_app "${app_id}"; then
+
+                    log_success "Estructura del stack '${app_id}' desplegada correctamente."
+
+                    report_add_application "${app_id}" "${BASE_DIR}/${catalog_file}"
+
+                else
+
+                    log_error "Fallo durante el despliegue del stack: ${app_id}"
+
+                fi
+
+            else
+
+                log_error "El paquete '${app_id}' no existe en la carpeta de plantillas."
+
+            fi
+
+        done
+
+    fi
+    # 5. Inyección de Recomendaciones Operativas i18n
     report_add_recommendation "${TXT_REC_STEP_1:-Acceder a Dockge y levantar los stacks preparados.}"
     report_add_recommendation "${TXT_REC_STEP_2:-Inicializar la cuenta administrativa de Portainer.}"
     report_add_recommendation "${TXT_REC_STEP_3:-Verificar contenedores con: sudo docker ps}"
     report_add_recommendation "${TXT_REC_STEP_4:-Verificar permisos de secretos con: sudo ls -l /opt/stacks/*/.env}"
 
-    # Escritura e impresión del reporte de infraestructura persistente
-    if report_generate_file &>/dev/null; then
+    # 6. Consolidación y generación del inventario final
+    log_info "Fase 5: Consolidando métricas y guardando inventario de infraestructura..."
+
+    # Generación del reporte persistente en disco
+    if report_generate_file; then
         log_success "Reporte de despliegue almacenado correctamente."
     else
         log_warn "No fue posible guardar el reporte persistente de instalación."
     fi
 
-    # Renderizado final en la STDOUT estándar para lectura del operador
+
+    # Mostrar resumen final por consola
     echo
     report_generate_console
     echo
+
 
     log_success "========================================================="
     log_success " DockerWarrior ha finalizado la instalación correctamente "
@@ -227,5 +327,6 @@ main() {
     return 0
 }
 
-# Invocación limpia del punto de entrada estructurado del Framework
+
+# --- Punto de entrada principal ---
 main "$@"

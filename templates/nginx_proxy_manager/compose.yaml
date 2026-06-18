@@ -1,23 +1,24 @@
 services:
   app:
-    image: jc21/nginx-proxy-manager:latest
+    image: 'jc21/nginx-proxy-manager:latest'
     restart: unless-stopped
     env_file:
       - .env
     ports:
-      - 80:80
-      - 81:81
-      - 443:443
+      - '80:80'
+      - '81:81'
+      - '443:443'
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
       - default
-      - dw_inbound_network              # Sub-red virtual interna del stack para el tráfico entrante
+      - dw_proxy_network
     depends_on:
       - db
+
   db:
-    image: mariadb:10.11
+    image: 'mariadb:10.11'
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -27,9 +28,8 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
     networks:
-      - default                         # La base de datos queda totalmente aislada en la red local por defecto
+      - default
 
 networks:
-  dw_inbound_network:
-    name: ${DW_GLOBAL_NETWORK:-dw-routing} # <-- FILOSOFÍA DW-APPSPEC: Dinámico vía .env con fallback seguro
+  dw_proxy_network:
     external: true
