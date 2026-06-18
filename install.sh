@@ -5,8 +5,6 @@
 set -Eeuo pipefail
 
 # --- 0. CONTROL DE PRIVILEGIOS NATIVO (PRE-CHECKS ABSOLUTO) ---
-# Detiene la ejecución inmediatamente si no se cuenta con privilegios elevados,
-# evitando escrituras fallidas en /var/log y colapsos en el manejador de excepciones.
 if [[ "${EUID}" -ne 0 ]]; then
     echo -e "\e[31m[ERROR]\e[0m Este script debe ejecutarse con privilegios de root (sudo)." >&2
     exit 1
@@ -40,27 +38,41 @@ export DW_APPSPEC_VERSION="v1.1"
 export DW_CORE_DIR="/opt/dockerwarrior"
 export DW_STACKS_DIR="/opt/stacks"
 
-# --- 4. CARGA DE LIBRERÍAS Y COMPONENTES CORE ---
-# Nota: Se asume la estructura modular estándar del repositorio distribuidor
+# --- 4. CARGA DE LIBRERÍAS, CONFIGURACIONES Y COMPONENTES CORE ---
 source "lib/core/logger.sh"
 source "lib/core/system.sh"
 source "lib/core/engine.sh"
-source "lib/core/network.sh"
+source "lib/docker/network.sh"
+source "lib/docker/install.sh"
 source "lib/core/report.sh"
 source "lib/ui/dialogs.sh"
 source "lib/ui/menu.sh"
 
+# Ingesta opcional de configuraciones globales por defecto si existen
+if [[ -f "config/defaults.conf" ]]; then
+    # shellcheck disable=SC1091
+    source "config/defaults.conf"
+fi
+
+# Definición unificada de la red (Prioriza config/defaults.conf -> fallback seguro)
+export DW_NETWORK="${DW_NETWORK:-dw_proxy_network}"
+
 # Inicializar de forma segura el archivo de log ahora que la firma de root está validada
 init_log_file
+
+# --- [MEJORA DE FLUJO] VALIDACIÓN TEMPRANA DEL HOST ---
+# Validamos el entorno antes de intentar cualquier instalación por APT (como whiptail)
+validate_os
+validate_architecture
 
 # --- 5. GESTIÓN SEGURA DE INTERNACIONALIZACIÓN (i18n) ---
 export LANG_SELECTED="${LANG_SELECTED:-}"
 
 if [[ -z "${LANG_SELECTED}" ]]; then
     if [[ -t 0 ]]; then
-        # FIX CATCH: Verificar y auto-aprovisionar whiptail de forma reactiva si falta en el host
+        # Verificar y auto-aprovisionar whiptail de forma reactiva si falta en el host
         if ! command -v whiptail &>/dev/null; then
-            echo -e "[INFO] Componente de interfaz gráfica 'whiptail' ausente. Instalando dependencia..." >&2
+            log_info "Componente de interfaz gráfica 'whiptail' ausente. Instalando dependencia..." 
             apt-get update -qq && apt-get install -y whiptail >/dev/null 2>&1 || true
         fi
 
@@ -98,6 +110,7 @@ fi
 
 # Cargar de forma segura los diccionarios idiomáticos compilados
 if [[ -f "lang/${LANG_SELECTED}.sh" ]]; then
+    # shellcheck disable=SC1091
     source "lang/${LANG_SELECTED}.sh"
 else
     # Fallback interno de contingencia lingüística
@@ -111,12 +124,8 @@ main() {
     log_info " Iniciando Despliegue de Infraestructura DockerWarrior"
     log_info "========================================================="
 
-    # Fase 1: Verificación de compatibilidad y dependencias de la máquina host
-    log_info "Fase 1: Verificando dependencias del sistema operativo..."
-    validate_os
-    validate_architecture
-
-    # Aprovisionamiento automatizado del motor de contenedores en caliente
+    # Fase 1: Aprovisionamiento del motor de contenedores en caliente
+    log_info "Fase 1: Verificando estado del motor de contenedores..."
     if ! command -v docker &>/dev/null || ! docker compose version &>/dev/null; then
         log_warn "Docker Engine o Docker Compose no detectados. Iniciando aprovisionamiento..."
         install_docker_engine
@@ -127,15 +136,14 @@ main() {
 
     # Fase 2: Construcción de redes de aislamiento perimetral
     log_info "Fase 2: Configurando redes globales segmentadas..."
-    # Se invoca la función interna para declarar dw_proxy_network de forma idempotente
     if command -v configure_dw_network &>/dev/null; then
         configure_dw_network
     else
-        # Red de contingencia directa si no se heredase el módulo de red
-        if ! docker network inspect dw_proxy_network &>/dev/null; then
-            log_info "Creando red global aislada 'dw_proxy_network'..."
-            docker network create --driver bridge --label project=dockerwarrior dw_proxy_network >/dev/null
-            log_success "Red 'dw_proxy_network' creada con éxito."
+        # Red de contingencia utilizando la variable unificada dinámica
+        if ! docker network inspect "${DW_NETWORK}" &>/dev/null; then
+            log_info "Creando red global aislada '${DW_NETWORK}'..."
+            docker network create --driver bridge --label project=dockerwarrior "${DW_NETWORK}" >/dev/null
+            log_success "Red '${DW_NETWORK}' creada con éxito."
         fi
     fi
 
@@ -162,7 +170,7 @@ main() {
             selected_apps=$(ui_select_apps) || selected_apps=""
         fi
     else
-        # Entorno Desatendido / TTY No disponible (Aislamiento de flujo como en Prueba 1.2)
+        # Entorno Desatendido / TTY No disponible
         log_warn "Terminal no interactiva detectada. Omitiendo interfaz visual de catálogo de forma automatizada."
     fi
 
