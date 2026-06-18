@@ -29,7 +29,7 @@ report_init() {
     local host_arch
     host_arch=$(uname -m)
 
-    # CORRECCIÓN 1: Eliminación radical de textos en inglés hardcodeados
+    # Eliminación de textos en inglés hardcodeados
     read -r -d '' _DW_REP_HOST_BUFFER << EOF || true
 ${TXT_REPORT_FRAMEWORK:-Framework}:
   ✓ DockerWarrior Core ${core_ver}
@@ -49,10 +49,20 @@ report_add_core_service() {
     _DW_REP_CORE_BUFFER+="  ${status} ${service_name}"$'\n'
 }
 
+# Mantenido por retrocompatibilidad con módulos externos de 2 parámetros
 report_add_panel() {
     local panel_name="${1}"
     local panel_url="${2}"
-    _DW_REP_PANEL_BUFFER+="${panel_name}:"$'\n'"  ${panel_url}"$'\n\n'
+    _DW_REP_PANEL_BUFFER+="${panel_name}:"$'\n'"  URL: ${panel_url}"$'\n\n'
+}
+
+# --- NUEVA FUNCIÓN CORE (Soporta la firma de install.sh v1.3.1-RC2) ---
+report_add_core_panel() {
+    local panel_name="${1}"
+    local panel_url="${2}"
+    local panel_storage="${3:-"N/A"}"
+    
+    _DW_REP_PANEL_BUFFER+="${panel_name}:"$'\n'"  URL: ${panel_url}"$'\n'"  Storage/Volume: ${panel_storage}"$'\n\n'
 }
 
 report_add_application() {
