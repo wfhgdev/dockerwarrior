@@ -1,0 +1,16 @@
+services:
+  server:
+    image: vaultwarden/server:latest
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=${VW_SIGNUPS_ALLOWED:-false} # Controla si cualquiera puede registrarse en tu server
+    networks:
+      - dw_inbound_network
+
+networks:
+  dw_inbound_network:
+    name: ${DW_GLOBAL_NETWORK:-dw-routing}
+    external: true

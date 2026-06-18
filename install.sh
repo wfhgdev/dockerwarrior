@@ -55,7 +55,7 @@ if [[ -f "config/defaults.conf" ]]; then
 fi
 
 # Definición unificada de la red (Prioriza config/defaults.conf -> fallback seguro)
-export DW_NETWORK="${DW_NETWORK:-dw_proxy_network}"
+export DW_NETWORK="${DW_NETWORK:-dw-routing}"
 
 # Inicializar de forma segura el archivo de log ahora que la firma de root está validada
 init_log_file
